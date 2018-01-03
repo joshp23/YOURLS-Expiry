@@ -21,6 +21,7 @@ Granular epiration rules for short URL's in YOURLS
    - add and update individual links with precise detail
    - manage database with a cron call
       - prune expired links that haven't been visited in a while, etc.
+- web interface post requests
 
 ##### What's Planned:
 -  Integrate expiry data to stats page OR stand alone expiry stats page.
@@ -30,7 +31,5 @@ Granular epiration rules for short URL's in YOURLS
 
 ##### What's not working
 -  admin interface to add a link with expiry data (some js included... not my strong suit)
-   - web interface post requests seem to be causing some issue. API level access works like a charm.
-
 ###### Note: 
  When in use with the [Change Error Msgs](https://github.com/adigitalife/yourls-change-error-messages) plugin, a simple action=shorturl call to any link in the database will trigger an update if sent with expiry info.
