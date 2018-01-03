@@ -4,7 +4,7 @@ YOURLS plugin to define conditions under which links will expire - time and clic
 ### Work in progress.
 
 #### Concept:
-Granular epiration rules for short URL's in YOURLS
+Granular expiration rules for short URL's in YOURLS
 
 ##### What's Working:
 -  add per-link and/or global time limited links
