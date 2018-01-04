@@ -3,12 +3,11 @@
 Plugin Name: Expiry
 Plugin URI: https://github.com/joshp23/YOURLS-Expiry
 Description: Will set expiration conditions on your links (or not)
-Version: 0.11.2
+Version: 0.11.3
 Author: Josh Panter
 Author URI: https://unfettered.net
 */
 // TODO expiry data in stats page
-// TODO fix the fine js
 // No direct call
 if( !defined( 'YOURLS_ABSPATH' ) ) die();
 /*
@@ -247,6 +246,7 @@ echo <<<HTML
 				<h4>API Documentaion</h4>
 				<h4>Cron examples</h4>
 				<h4>Index.php Integration example</h4>
+				<p>Please see the example that came with this plugin.</p>
 			</div>
 		</div>
 	</div>
@@ -338,13 +338,12 @@ echo <<<HTML
 HTML;
 }
 
-// Admin Page JS FIXME
-// yourls_add_action('html_addnew', 'expiry_script');
-// function expiry_script(){
-//	echo "<script src=\"". yourls_plugin_url( dirname( __FILE__ ) ). "/assets/expiry.js\" type=\"text/javascript\"></script>" ;
-//	echo '<link rel="stylesheet" href="/css/infos.css" type="text/css" media="screen" />';
-//	echo '<script src="/js/infos.js" type="text/javascript"></script>';
-// }
+// Admin Page JS
+yourls_add_action('html_addnew', 'expiry_script');
+function expiry_script(){
+	echo '<link rel="stylesheet" href="/css/infos.css" type="text/css" media="screen" />';
+	echo '<script src="/js/infos.js" type="text/javascript"></script>';
+}
 
 yourls_add_filter( 'shunt_html_addnew', 'expiry_override_html_addnew' );
 function expiry_override_html_addnew( $shunt ) {
@@ -359,29 +358,28 @@ function expiry_override_html_addnew( $shunt ) {
 					<?php yourls_e( 'Optional '); ?> : <strong><?php yourls_e('Custom short URL'); ?></strong>:<input type="text" id="add-keyword" name="keyword" value="<?php echo $keyword; ?>" class="text" size="8" />
 					<?php yourls_nonce_field( 'add_url', 'nonce-add' ); ?>
 					<input type="button" id="add-button" name="add-button" value="<?php yourls_e( 'Shorten The URL' ); ?>" class="button" onclick="add_link();" />
-					</br>
-					<input type="checkbox" name="expire" id="expire" /> Would you like this link to expire?
-					<div id="expirydiv" style="display:none">
-						<label for="expiry">Expiry type:</label>
-						<select name="expiry" id="expiry" data-role="slider" > Select One
-							<option value="" selected="selected">Site Default</option>
-							<option value="clock">Timer</option>
-							<option value="click" >Click Counter</option>
-						</select> 
-						<div id="tick_tock" style="display:none">
-							<input type="number" name="age" id="age" value="" min="0">
-							<select name="mod" id="mod" size="1" >
-								<option value="" selected="selected">Select One</option>
-								<option value="min">Minutes</option>
-								<option value="hour">Hours</option>
-								<option value="day" >Days</option>
-								<option value="week">Weeks</option>
-							</select>
-						</div>
-						<div id="clip_clop" style="display:none">
-							<p><input type="number" name="count" id="count" min="0"> Select number of clicks before link is expired.</p>
-						</div>
+					</br></br>
+
+					<label for="expiry"><strong>Short Link Expiration Type</strong>:</label>
+					<select name="expiry" id="expiry" data-role="slider" > Select One
+						<option value="" selected="selected">None</option>
+						<option value="clock">Timer</option>
+						<option value="click" >Click Counter</option>
+					</select> 
+					<div id="tick_tock" style="display:none">
+						<input type="number" name="age" id="age" value="" min="0">
+						<select name="mod" id="mod" size="1" >
+							<option value="" selected="selected">Select One</option>
+							<option value="min">Minutes</option>
+							<option value="hour">Hours</option>
+							<option value="day" >Days</option>
+							<option value="week">Weeks</option>
+						</select>
 					</div>
+					<div id="clip_clop" style="display:none">
+						<input type="number" name="count" id="count" min="0"> Total clicks allowed.
+					</div>
+
 				</div>
 			</form>
 				<div id="feedback" style="display:none"></div>
@@ -389,11 +387,6 @@ function expiry_override_html_addnew( $shunt ) {
 		<?php yourls_do_action( 'html_addnew' ); ?>
 	</div>
 	<script>
-		$(document).ready(function() {
-			$('#expire').change(function() {
-				$('#expirydiv').toggle();
-			});
-		});
 		document.getElementById('expiry').addEventListener('change', function () {
 			var style = this.value == "clock" ? 'block' : 'none';
 			document.getElementById('tick_tock').style.display = style;
@@ -723,6 +716,39 @@ function expiry_display_expired($keyword, $result) {
 
 	echo $intercept;
 	die();
+}
+
+// Expiry-Change-Error-MSG
+yourls_add_action( 'plugins_loaded', 'expiry_change_error_msg' );
+function expiry_change_error_msg() {
+
+	if( !yourls_is_active_plugin('change-error-messages/plugin.php') ) {
+
+		yourls_add_filter( 'add_new_link', 'change_error_messages' );
+		// If the keyword exists, display the long URL in the error message
+		function change_error_messages( $return, $url, $keyword, $title  ) {
+			if ( isset( $return['code'] ) ) {
+				if ( $return['code'] === 'error:keyword' ){
+					$long_url = yourls_get_keyword_longurl( $keyword );
+					if ($long_url){
+						$return['message']	= 'The keyword "' . $keyword . '" already exists for: ' . $long_url;
+					} elseif ( yourls_keyword_is_reserved( $keyword ) ){
+									$return['message']	= "The keyword '" . $keyword . "' is reserved";
+					}
+				}
+				elseif ( $return['code'] === 'error:url' ){
+					if ($url_exists = yourls_url_exists( $url )){
+						$keyword = $url_exists->keyword;
+						$return['status']   = 'success';
+						$return['message']	= 'This URL already has a short link: ' . YOURLS_SITE .'/'. $keyword;
+						$return['title']    = $url_exists->title;
+						$return['shorturl'] = YOURLS_SITE .'/'. $keyword;
+					}
+				}
+			}
+			return yourls_apply_filter( 'after_custom_error_message', $return, $url, $keyword, $title );
+		}
+	}
 }
 
 /*
@@ -1129,33 +1155,4 @@ function expiry_cleanup( $args ) {
 	// Delete the expiry data, no need for it anymore
 	$ydb->query("DELETE FROM `expiry` WHERE `keyword` = '$keyword';");
 
-}
-
-// Change-Error MSG behavior
-if( (yourls_is_active_plugin('change-error-messages/plugin.php')) ) {
-
-	yourls_add_filter( 'add_new_link', 'change_error_messages' );
-	// If the keyword exists, display the long URL in the error message
-	function change_error_messages( $return, $url, $keyword, $title  ) {
-		if ( isset( $return['code'] ) ) {
-			if ( $return['code'] === 'error:keyword' ){
-				$long_url = yourls_get_keyword_longurl( $keyword );
-				if ($long_url){
-					$return['message']	= 'The keyword "' . $keyword . '" already exists for: ' . $long_url;
-				} elseif ( yourls_keyword_is_reserved( $keyword ) ){
-								$return['message']	= "The keyword '" . $keyword . "' is reserved";
-				}
-			}
-			elseif ( $return['code'] === 'error:url' ){
-				if ($url_exists = yourls_url_exists( $url )){
-					$keyword = $url_exists->keyword;
-					$return['status']   = 'success';
-					$return['message']	= 'This URL already has a short link: ' . YOURLS_SITE .'/'. $keyword;
-					$return['title']    = $url_exists->title;
-					$return['shorturl'] = YOURLS_SITE .'/'. $keyword;
-				}
-			}
-		}
-		return yourls_apply_filter( 'after_custom_error_message', $return, $url, $keyword, $title );
-	}
 }
