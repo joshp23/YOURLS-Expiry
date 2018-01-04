@@ -3,7 +3,7 @@
 Plugin Name: Expiry
 Plugin URI: https://github.com/joshp23/YOURLS-Expiry
 Description: Will set expiration conditions on your links (or not)
-Version: 0.11.1
+Version: 0.11.2
 Author: Josh Panter
 Author URI: https://unfettered.net
 */
@@ -304,12 +304,7 @@ echo <<<HTML
 				</tr>
 HTML;
 	// populate table rows with expiry data if there is any
-
-	$table = 'expiry';
-	$sql = "SELECT * FROM $table ORDER BY timestamp DESC";
-	$binds = array('keyword' => $keyword);
-	$expiry_list = $ydb->fetchAll($sql, $binds);
-
+	$expiry_list = $ydb->get_results("SELECT * FROM `expiry` ORDER BY timestamp DESC");
 	if($expiry_list) {
 		foreach( $expiry_list as $expiry ) {
 			$kword  = $expiry->keyword;
@@ -342,15 +337,75 @@ echo <<<HTML
 	</form>
 HTML;
 }
-/*
+
 // Admin Page JS FIXME
-yourls_add_action('html_addnew', 'expiry_script');
-function expiry_script(){
+// yourls_add_action('html_addnew', 'expiry_script');
+// function expiry_script(){
 //	echo "<script src=\"". yourls_plugin_url( dirname( __FILE__ ) ). "/assets/expiry.js\" type=\"text/javascript\"></script>" ;
 //	echo '<link rel="stylesheet" href="/css/infos.css" type="text/css" media="screen" />';
-	echo '<script src="/js/infos.js" type="text/javascript"></script>';
+//	echo '<script src="/js/infos.js" type="text/javascript"></script>';
+// }
+
+yourls_add_filter( 'shunt_html_addnew', 'expiry_override_html_addnew' );
+function expiry_override_html_addnew( $shunt ) {
+	?>
+	<main role="main">
+	<div id="new_url">
+		<div>
+			<form id="new_url_form" action="" method="get">
+				<div>
+					<strong><?php yourls_e( 'Enter the URL' ); ?></strong>:
+					<input type="text" id="add-url" name="url" value="<?php echo $url; ?>" class="text" size="80" placeholder="http://" />
+					<?php yourls_e( 'Optional '); ?> : <strong><?php yourls_e('Custom short URL'); ?></strong>:<input type="text" id="add-keyword" name="keyword" value="<?php echo $keyword; ?>" class="text" size="8" />
+					<?php yourls_nonce_field( 'add_url', 'nonce-add' ); ?>
+					<input type="button" id="add-button" name="add-button" value="<?php yourls_e( 'Shorten The URL' ); ?>" class="button" onclick="add_link();" />
+					</br>
+					<input type="checkbox" name="expire" id="expire" /> Would you like this link to expire?
+					<div id="expirydiv" style="display:none">
+						<label for="expiry">Expiry type:</label>
+						<select name="expiry" id="expiry" data-role="slider" > Select One
+							<option value="" selected="selected">Site Default</option>
+							<option value="clock">Timer</option>
+							<option value="click" >Click Counter</option>
+						</select> 
+						<div id="tick_tock" style="display:none">
+							<input type="number" name="age" id="age" value="" min="0">
+							<select name="mod" id="mod" size="1" >
+								<option value="" selected="selected">Select One</option>
+								<option value="min">Minutes</option>
+								<option value="hour">Hours</option>
+								<option value="day" >Days</option>
+								<option value="week">Weeks</option>
+							</select>
+						</div>
+						<div id="clip_clop" style="display:none">
+							<p><input type="number" name="count" id="count" min="0"> Select number of clicks before link is expired.</p>
+						</div>
+					</div>
+				</div>
+			</form>
+				<div id="feedback" style="display:none"></div>
+		</div>
+		<?php yourls_do_action( 'html_addnew' ); ?>
+	</div>
+	<script>
+		$(document).ready(function() {
+			$('#expire').change(function() {
+				$('#expirydiv').toggle();
+			});
+		});
+		document.getElementById('expiry').addEventListener('change', function () {
+			var style = this.value == "clock" ? 'block' : 'none';
+			document.getElementById('tick_tock').style.display = style;
+
+			var style = this.value == "click" ? 'block' : 'none';
+			document.getElementById('clip_clop').style.display = style;
+		});
+	</script>
+	<?php 
+	return $shunt = true;
 }
-*/
+
 // Mark expiry links on admin page
 yourls_add_filter( 'table_add_row', 'show_expiry_tablerow' );
 function show_expiry_tablerow($row, $keyword, $url, $title, $ip, $clicks, $timestamp) {
@@ -362,7 +417,6 @@ function show_expiry_tablerow($row, $keyword, $url, $title, $ip, $clicks, $times
 	if($expiry_expose !== "false") {
 
 		// If the keyword is set to expire, make the URL show in green;
-
 		$table = 'expiry';
 		$sql = "SELECT * FROM $table WHERE BINARY `keyword` = :keyword";
 		$binds = array('keyword' => $keyword);
@@ -480,7 +534,7 @@ yourls_add_action( 'redirect_shorturl', 'expiry_check' );
 function expiry_check( $args ) {
 
 	global $ydb;
-
+	
     $keyword = $args[1]; // Keyword for this request
 	$table = 'expiry';
 	$sql = "SELECT * FROM $table WHERE `keyword` = :keyword";
@@ -1078,7 +1132,7 @@ function expiry_cleanup( $args ) {
 }
 
 // Change-Error MSG behavior
-if((yourls_is_active_plugin('change-error-messages/plugin.php')) == false) {
+if( (yourls_is_active_plugin('change-error-messages/plugin.php')) ) {
 
 	yourls_add_filter( 'add_new_link', 'change_error_messages' );
 	// If the keyword exists, display the long URL in the error message
