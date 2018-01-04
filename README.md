@@ -27,4 +27,11 @@ YOURLS plugin to define conditions under which links will expire - time and clic
 ##### What's not working
 -  admin interface to add a link with expiry data (some js included... WIP)
 ###### Note: 
- Uses code from the [Change Error Msgs](https://github.com/adigitalife/yourls-change-error-messages) plugin so that a simple action=shorturl call to any link in the database will trigger an update if this request is sent with expiry info. 
+ Uses code from the [Change Error Msgs](https://github.com/adigitalife/yourls-change-error-messages) plugin.
+
+ Currently, this needs to be added to `inclides/functions-html.php` at line 179 in order for the admin page form to work. A pull request with this filter has been submitted to YOURLS/YOURLS.
+```
+	$pre = yourls_apply_filter( 'shunt_html_addnew', false );
+		if ( false !== $pre )
+			return $pre;
+```
