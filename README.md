@@ -16,20 +16,19 @@ YOURLS plugin to define conditions under which links will expire - time and clic
    - add and update individual links with precise detail
    - manage database with a cron call
       - prune expired links that haven't been visited in a while, etc.
-- web interface post requests
+- public interface post requests and admin page requests
 
 ##### What's Planned:
 -  Integrate expiry data to stats page OR stand alone expiry stats page.
 -  more clarity of info in list page (human readable time left, # of clicks left)
 -  simple and robust options for updating expiry data via the list page (add X clicks or days to expiry, etc...)
 -  api to call for expiry data
+-  API instructions and a more complete example
 
-##### What's not working
--  admin interface to add a link with expiry data (some js included... WIP)
 ###### Note: 
  Uses code from the [Change Error Msgs](https://github.com/adigitalife/yourls-change-error-messages) plugin.
 
- Currently, this needs to be added to `inclides/functions-html.php` at line 179 in order for the admin page form to work. A pull request with this filter has been submitted to YOURLS/YOURLS.
+ Currently, the following needs to be added to `inclides/functions-html.php` at line 179 in order for the admin page form to work. A pull request with this filter has been submitted to YOURLS/YOURLS.
 ```
 	$pre = yourls_apply_filter( 'shunt_html_addnew', false );
 		if ( false !== $pre )
