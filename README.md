@@ -28,7 +28,7 @@ YOURLS plugin to define conditions under which links will expire - time and clic
 ###### Note: 
  Uses code from the [Change Error Msgs](https://github.com/adigitalife/yourls-change-error-messages) plugin.
 
- Currently, the following needs to be added to `inclides/functions-html.php` at line 179 in order for the admin page form to work. A pull request with this filter has been submitted to YOURLS/YOURLS.
+ Currently, the following needs to be added to `inclides/functions-html.php` at line 179 in order for the admin page form to work. A [pull request](https://github.com/YOURLS/YOURLS/pull/2345/commits/1546416dbefee8f21030f28d165eb14a5ba7eae6) with this filter has been submitted to YOURLS/YOURLS.
 ```
 	$pre = yourls_apply_filter( 'shunt_html_addnew', false );
 		if ( false !== $pre )
