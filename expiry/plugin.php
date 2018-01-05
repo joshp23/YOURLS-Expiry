@@ -3,7 +3,7 @@
 Plugin Name: Expiry
 Plugin URI: https://github.com/joshp23/YOURLS-Expiry
 Description: Will set expiration conditions on your links (or not)
-Version: 1.0.1
+Version: 1.1.0
 Author: Josh Panter
 Author URI: https://unfettered.net
 */
@@ -75,6 +75,8 @@ function expiry_do_page() {
 	$cronEG   =  rawurlencode('<html><body><pre>0 * * * * wget -O - -q -t 1 <strong>'.$site.'</strong>/yourls-api.php?signature=<strong>'.$sig.'</strong>&format=simple&action=prune&scope=expired >/dev/null 2>&1</pre></body></html>');
 
 echo <<<HTML
+	<link rel="stylesheet" href="/css/infos.css" type="text/css" media="screen">
+	<script src="/js/infos.js" type="text/javascript"></script>
 	<div id="wrap">
 		<div id="tabs">
 
@@ -400,14 +402,17 @@ HTML;
 }
 
 // Admin Page JS
-yourls_add_action('html_addnew', 'expiry_script');
-function expiry_script(){
-	echo '<link rel="stylesheet" href="/css/infos.css" type="text/css" media="screen" />';
-	echo '<script src="/js/infos.js" type="text/javascript"></script>';
+yourls_add_action('html_addnew', 'expiry_js');
+function expiry_js(){
+	echo "\n<! --------------------------Expiry Start-------------------------- >\n";
+	echo "<script src=\"". yourls_plugin_url( dirname( __FILE__ ) ). "/assets/expiry.js\" type=\"text/javascript\"></script>\n" ;
+	echo "<! --------------------------Expiry END---------------------------- >\n";
 }
-
+/*
+// dependent upon PR 2345 https://github.com/YOURLS/YOURLS/pull/2345
+// use above javascript in the meantime
 yourls_add_filter( 'shunt_html_addnew', 'expiry_override_html_addnew' );
-function expiry_override_html_addnew( $shunt ) {
+function expiry_override_html_addnew( $shunt, $url, $keyword ) {
 	?>
 	<main role="main">
 	<div id="new_url">
@@ -418,29 +423,32 @@ function expiry_override_html_addnew( $shunt ) {
 					<input type="text" id="add-url" name="url" value="<?php echo $url; ?>" class="text" size="80" placeholder="http://" />
 					<?php yourls_e( 'Optional '); ?> : <strong><?php yourls_e('Custom short URL'); ?></strong>:<input type="text" id="add-keyword" name="keyword" value="<?php echo $keyword; ?>" class="text" size="8" />
 					<?php yourls_nonce_field( 'add_url', 'nonce-add' ); ?>
-					<input type="button" id="add-button" name="add-button" value="<?php yourls_e( 'Shorten The URL' ); ?>" class="button" onclick="add_link();" />
+					<input type="button" id="add-button" name="add-button" value="<?php yourls_e( 'Shorten The URL' ); ?>" class="button" onclick="add_link_expiry();" />
 					</br></br>
-
 					<label for="expiry"><strong>Short Link Expiration Type</strong>:</label>
 					<select name="expiry" id="expiry" data-role="slider" > Select One
 						<option value="" selected="selected">None</option>
 						<option value="clock">Timer</option>
 						<option value="click" >Click Counter</option>
-					</select> 
-					<div id="tick_tock" style="display:none">
-						<input type="number" name="age" id="age" value="" min="0">
-						<select name="mod" id="mod" size="1" >
-							<option value="" selected="selected">Select One</option>
-							<option value="min">Minutes</option>
-							<option value="hour">Hours</option>
-							<option value="day" >Days</option>
-							<option value="week">Weeks</option>
-						</select>
+					</select>
+					<div id="expiry_params" style="padding-left: 10pt;border-left:1px solid blue;border-bottom:1px solid blue;display:none;">
+						<div style="margin:auto;width:150px;text-align:left;" >
+							<div id="tick_tock" style="display:none">
+								<input style="width:50px;" type="number" name="age" id="age" value="" min="0">
+									<select name="mod" id="mod" size="1" >
+										<option value="" selected="selected">Select One</option>
+										<option value="min">Minutes</option>
+										<option value="hour">Hours</option>
+										<option value="day" >Days</option>
+										<option value="week">Weeks</option>
+									</select>
+							</div>
+							<div id="clip_clop" style="display:none">
+								<input  style="width:50px;" type="number" name="count" id="count" min="0" > Click limit.
+							</div>
+						</div>
+						<input type="text" id="postx" name="postx" class="text" size="40" placeholder="leave blank for none"/> <strong>Fallback URL</strong>
 					</div>
-					<div id="clip_clop" style="display:none">
-						<input type="number" name="count" id="count" min="0"> Total clicks allowed.
-					</div>
-
 				</div>
 			</form>
 				<div id="feedback" style="display:none"></div>
@@ -448,10 +456,12 @@ function expiry_override_html_addnew( $shunt ) {
 		<?php yourls_do_action( 'html_addnew' ); ?>
 	</div>
 	<script>
+		document.getElementById('add-button').setAttribute('onclick',  'add_link_expiry();');
 		document.getElementById('expiry').addEventListener('change', function () {
+			var style = this.value !== "" ? 'block' : 'none';
+			document.getElementById('expiry_params').style.display = style;
 			var style = this.value == "clock" ? 'block' : 'none';
 			document.getElementById('tick_tock').style.display = style;
-
 			var style = this.value == "click" ? 'block' : 'none';
 			document.getElementById('clip_clop').style.display = style;
 		});
@@ -459,7 +469,7 @@ function expiry_override_html_addnew( $shunt ) {
 	<?php 
 	return $shunt = true;
 }
-
+*/
 // Mark expiry links on admin page
 yourls_add_filter( 'table_add_row', 'show_expiry_tablerow' );
 function show_expiry_tablerow($row, $keyword, $url, $title, $ip, $clicks, $timestamp) {
