@@ -3,7 +3,7 @@
 
 #### Installation
 As any YOURLS plugin:
--  Extract the `expiry` folder from this repo, and place it at `user/plugins/expiry'
+-  Extract the `expiry` folder from this repo, and place it at `user/plugins/expiry`
 -  Enable in admin area
 
 The databse ought to create itself, if not, there is an sql file in the `expiry/assets` folder
