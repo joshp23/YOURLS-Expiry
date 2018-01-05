@@ -3,7 +3,7 @@
 Plugin Name: Expiry
 Plugin URI: https://github.com/joshp23/YOURLS-Expiry
 Description: Will set expiration conditions on your links (or not)
-Version: 1.1.0
+Version: 1.2.0
 Author: Josh Panter
 Author URI: https://unfettered.net
 */
@@ -837,6 +837,17 @@ function expiry_change_error_msg() {
 // Expire new links
 yourls_add_filter( 'add_new_link', 'expiry_new_link' );
 function expiry_new_link( $return, $url , $keyword, $title ) { 
+
+	// this method tolelrates no error in short url creation
+	if(isset ( $return['code'] ) ) {
+		switch( $return['code'] ) {
+			case 'error:url':
+				$return['expiry'] = 'Error: use "action => expiry" to add expiration data to a pre-esxisting url. No expiry data set';
+				return $return;
+			default:
+				return $return;
+		}
+	}
 
 	$opt = expiry_config();
 
