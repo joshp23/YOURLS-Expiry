@@ -3,7 +3,7 @@
 Plugin Name: Expiry
 Plugin URI: https://github.com/joshp23/YOURLS-Expiry
 Description: Will set expiration conditions on your links (or not)
-Version: 0.11.3
+Version: 1.0.0
 Author: Josh Panter
 Author URI: https://unfettered.net
 */
@@ -68,7 +68,11 @@ function expiry_do_page() {
 
 	// Create nonce
 	$nonce = yourls_create_nonce( 'expiry' );
-		
+	
+	// Misc for cron example pre-formatting
+	$sig	= yourls_auth_signature();
+	$site   = YOURLS_SITE;
+	$cronEG   =  rawurlencode('<html><body><pre>0 * * * * wget -O - -q -t 1 <strong>'.$site.'</strong>/yourls-api.php?signature=<strong>'.$sig.'</strong>&format=simple&action=prune&scope=expired >/dev/null 2>&1</pre></body></html>');
 
 echo <<<HTML
 	<div id="wrap">
@@ -79,7 +83,7 @@ echo <<<HTML
 					<li class="selected"><a href="#stat_tab_config"><h2>Config</h2></a></li>
 					<li><a href="#stat_tab_exp_list"><h2>Expiry List</h2></a></li>
 					<li><a href="#stat_tab_prune"><h2>Prune</h2></a></li>
-					<li><a href="#stat_tab_ex"><h2>Examples</h2></a></li>
+					<li><a href="#stat_tab_api"><h2>API</h2></a></li>
 				</ul>
 			</div>
 
@@ -213,18 +217,18 @@ echo <<<HTML
 				<p>There are 3 settings for this operation</p>
 				<ul>
 					<li><strong>Expired</strong>: Locates all links that are beyond expiration conditions, processes them accordingly.</li>
-					<li><strong>Expires</strong>: Dumps all expiry data. URL's remain in the database, only expiry data is stripped.</li>
-					<li><strong>Expiring</strong>: <span style="color:red">Warning!</span> Removes every url from YOURLS in the expiry table.</li>
+					<li><strong>Scrub</strong>: Dumps all expiry data. URL's remain in the database, only expiry data is stripped.</li>
+					<li><strong>Killall</strong>: <span style="color:red">Warning!</span> Ruthlessly expires any link with expiration conditions before thier time.</li>
 				</ul>
-				<p>Each of these items, as well as every Expiry function, has an api access point. More on how (and why) to use them on the next tab.</p>
+
 				<form method="post">
 
 					<div style="padding-left: 10pt;border-left:1px solid blue;border-bottom:1px solid blue;">
 						<select name="expiry_admin_prune_type" size="1" >
 							<option value="lazyorblind" >Select One</option>
 							<option value="expired" >Expired</option>
-							<option value="expires" >Expires</option>
-							<option value="expiring">Expiring</option>
+							<option value="scrub" >Scrub</option>
+							<option value="killall">Killall</option>
 						</select>
 
 						<label>
@@ -240,13 +244,66 @@ echo <<<HTML
 				<form method="post">
 			</div>
 
-			<div  id="stat_tab_ex" class="tab">
-				<h3>Coming Soon</h3>
-				<p>Watch this plugin's <a href="https://github.com/joshp23/YOURLS-expiry" target="_blank" >Github Repo</a> for updates and examples.</p>
-				<h4>API Documentaion</h4>
-				<h4>Cron examples</h4>
-				<h4>Index.php Integration example</h4>
-				<p>Please see the example that came with this plugin.</p>
+			<div  id="stat_tab_api" class="tab">
+
+				<p>Expiry will accept both GET and POST requests at the normal YOURLS API end point in order to:</p>
+				<ul>
+					<li>Add expiration data to a new short url</li>
+					<li>Add expiration data to an old short url</li>
+					<li>Prune the database according to expiration data</li>
+				</ul>
+				<div style="padding-left: 10pt;border-left:1px solid blue;border-bottom:1px solid blue;">
+					<h3>Setting expiry data to a new short url</h3>
+					<p>With the normal API request <code>action = "shorturl"</code>:</p>
+			
+					<p>For a <strong>click-count</strong> based expiry send:</p>
+					<ul>
+						<li><code>expiry = "click"</code></li>
+						<ul>
+							<li><code>count = NUMERIC_VALUE</code></li>
+						</ul>
+					</ul>
+					<p>For a <strong>time</strong> based expiry send:</p>
+					<ul>
+						<li>expiry = "clock"</li>
+						<ul>
+							<li><code>age = NUMERIC_VALUE</code></li>
+							<li><code>mod = (min, hr, day, week)</code></li>
+						</ul>
+					</ul>
+					<p>If <code>count</code>, <code>age</code>, and <code>mod</code> values are not set, site default values will be used.</p> 
+					<p><strong>Optional</strong>: set a post-expiration fallback URL:</p>
+					<ul>
+						<li><code>postx = URL</code></li>
+					</ul>
+				</div>
+					<div style="padding-left: 10pt;border-left:1px solid blue;border-bottom:1px solid blue;">
+					<h3>Setting expiry data to an old short url</h3>
+					<p>This action requires authenitcation. Along with auth data, and using the same parameters as above, send the following:</p> 
+					<ul>
+						<li><code>action = "expiry"</code></li>
+						<li><code>shorturl = URL</code></li>
+					</ul>
+				</div>
+				<div style="padding-left: 10pt;border-left:1px solid blue;border-bottom:1px solid blue;">
+					<h3>Prune the database</h3>
+					<p>These actions require authenitcation. Along with auth data, send one of the following:</p> 
+				
+					<ul>
+						<li><code>action = "prune"</code></li>
+						<ul>
+							<li><code>scope = "expired"</code></li>
+							<li><code>scope = "scrub"</code></li>
+							<li><code>scope = "killall"</code></li>
+						</ul>
+					</ul>
+					<p>See the Prune tab for explanations of these functions</p>
+
+					<h4>Cron example:</h3>
+					<p>Use the following pre-formatted example to set up a daily cron to prune your databse of expired links:</p>
+					 <iframe src="data:text/html;charset=utf-8,$cronEG" width="100%" height="51"/></iframe>
+					<p>Look here for more info on <a href="https://help.ubuntu.com/community/CronHowto" target="_blank" >cron</a> and <a href="https://www.gnu.org/software/wget/manual/html_node/HTTP-Options.html" target="_blank">wget</a>.</p>
+				</div>
 			</div>
 		</div>
 	</div>
@@ -498,10 +555,10 @@ function expiry_flush() {
 				case 'expired':
 					echo '<font color="green">All expired links have beeen deleted from the system. Have a nice day.</font>';
 					break;
-				case 'expires':
+				case 'scrub':
 					echo '<font color="green">All links are now non-perishable. Have a nice day.</font>';
 					break;
-				case 'expiring':
+				case 'killall':
 					echo '<font color="green">All links with expiration dates have been deleted. Have a ncie day.</font>';
 					break;
 				case 'lazyorblind';
@@ -970,10 +1027,10 @@ function expiry_prune_api() {
 	}
 	
 	// Scope must be in range
-	if( !in_array( $_REQUEST['scope'], array( 'expired', 'expires', 'expiring' ) ) ) {
+	if( !in_array( $_REQUEST['scope'], array( 'expired', 'scrub', 'killall' ) ) ) {
 		return array(
 			'statusCode' => 400,
-			'simple'     => "Error: 'scope' must be set to 'expired', 'expires' or 'expiring'",
+			'simple'     => "Error: 'scope' must be set to 'expired', 'scrub' or 'killall'",
 			'message'    => "error: bad param value for 'scope'",
 			);
 	}
@@ -996,7 +1053,7 @@ function expiry_prune_api() {
 				);
 			}
 
-		case 'expires':
+		case 'scrub':
 			
 			if( expiry_db_flush( $type ) ) {
 				return array(
@@ -1012,7 +1069,7 @@ function expiry_prune_api() {
 				);
 			}
 
-		case 'expiring':
+		case 'killall':
 			
 			if( expiry_db_flush( $type ) ) {
 				return array(
@@ -1100,7 +1157,7 @@ function expiry_db_flush( $type ) {
 			break;
 			
 		// remove expiry data from all links & preserve the short url	
-		case 'expires':
+		case 'scrub':
 			$init_1 = yourls_get_option('expiry_init');
 
 			if ($init_1 !== false) {
@@ -1116,7 +1173,7 @@ function expiry_db_flush( $type ) {
 			break;
 			
 		// delete every short url that is set to expire	
-		case 'expiring': // nuke
+		case 'killall': // nuke
 		
 			$expiry_list = $ydb->get_results("SELECT * FROM `expiry` ORDER BY timestamp DESC");
 			
