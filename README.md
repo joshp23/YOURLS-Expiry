@@ -27,7 +27,6 @@ The databse ought to create itself, if not, there is an sql file in the `expiry/
 
 ##### What's Planned:
 -  Integrate expiry data to stats page OR stand alone expiry stats page.
--  more clarity of info in list page (human readable time left, # of clicks left)
 -  simple and robust options for updating expiry data via the list page (add X clicks or days to expiry, etc...)
 -  api to call for expiry data
 

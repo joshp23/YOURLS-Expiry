@@ -3,7 +3,7 @@
 Plugin Name: Expiry
 Plugin URI: https://github.com/joshp23/YOURLS-Expiry
 Description: Will set expiration conditions on your links (or not)
-Version: 1.3.0
+Version: 1.3.1
 Author: Josh Panter
 Author URI: https://unfettered.net
 */
@@ -329,7 +329,7 @@ echo <<<HTML
 					<th>Clicks</th>
 					<th>Timer</th>
 					<th>Time Unit</th>
-					<th>PostX Destiantion</th>
+					<th>PostX Destiantion (optional)</th>
 
 					<th>&nbsp;</th>
 				</tr>
@@ -338,16 +338,16 @@ echo <<<HTML
 				<tr>
 					<td><input type="text" name="shorturl" size=8></td>
 					<td>
-						<select name="expiry" size="1" >
-							<option value="none">Select One</option>
+						<select name="expiry" id="expiry" size="1" >
+							<option value="none" selected="selected" >Select  One</option>
 							<option value="click">Click Counts</option>
 							<option value="clock">Timer</option>
 						</select>
 					</td>
-					<td><input type="text" size="5" name="count" value=""></td>
-					<td><input type="text" size="3" name="age" value=""></td>
+					<td><input type="text" size="5" name="count" id="count" value="" disabled ></td>
+					<td><input type="text" size="3" name="age" id="age" value="" disabled ></td>
 					<td>
-						<select name="mod" size="1" >
+						<select name="mod" id="mod" size="1" disabled >
 							<option value="">Select One</option>
 							<option value="min">Minutes</option>
 							<option value="hour">Hours</option>
@@ -355,7 +355,7 @@ echo <<<HTML
 							<option value="week">Weeks</option>
 						</select>
 					</td>
-					<td><input type="text" name="postx" size=30 ></td>
+					<td><input type="text" name="postx" id="postx" size="30" disabled></td>
 					<td colspan=3 align=right>
 						<input type=submit name="submit" value="Submit: Expiry an Old Link">
 						<input type="hidden" name="nonce" value="$nonce" />
@@ -376,7 +376,11 @@ HTML;
 			$fresh  = $expiry->timestamp;
 			$stale  = $expiry->shelflife;
 			$postx  = $expiry->postexpire;
-			$death  = ((time() - $fresh) - $stale);
+			$death  = null;
+			if( $type == 'clock' ) {
+				$death  = ($stale - (time() - $fresh));
+				$death  = expiry_age_mod_reverse($death);
+			}
 			$remove = ''. $_SERVER['PHP_SELF'] .'?page=expiry&action=remove&key='. $kword .'';
 			$strip  = ''. $_SERVER['PHP_SELF'] .'?page=expiry&action=no_postx&key='. $kword .'';
 			// print if there is any data
@@ -386,7 +390,7 @@ HTML;
 					<td>$type</td>
 					<td>$click</td>
 					<td>$death</td>
-					<td>Seconds</td>
+					<td></td>
 					<td>$postx</td>
 					<td><a href="$remove">Remove Expiry <img src="/images/delete.png" title="UnExpire" border=0></a></td>
 					<td><a href="$strip">Strip Postx <img src="/images/delete.png" title="UnPostExpiry" border=0></a></td>
@@ -398,6 +402,22 @@ echo <<<HTML
 			</tbody>
 		</table>
 	</form>
+	<script>
+		document.getElementById('expiry').addEventListener('change', function () {
+			 if (this.value == "click") {
+					$('#count').prop('disabled', false);
+					$('#age').prop('disabled', true);      
+					$('#mod').prop('disabled', true);      
+					$('#postx').prop('disabled', false);       
+				}
+			 if (this.value == "clock") {
+					$('#count').prop('disabled', true);
+					$('#age').prop('disabled', false);      
+					$('#mod').prop('disabled', false);      
+					$('#postx').prop('disabled', false);       
+				}
+		});
+	</script>
 HTML;
 }
 
@@ -455,7 +475,6 @@ function expiry_override_html_addnew( $shunt, $url, $keyword ) {
 		<?php yourls_do_action( 'html_addnew' ); ?>
 	</div>
 	<script>
-		document.getElementById('add-button').setAttribute('onclick',  'add_link_expiry();');
 		document.getElementById('expiry').addEventListener('change', function () {
 			var style = this.value !== "" ? 'block' : 'none';
 			document.getElementById('expiry_params').style.display = style;
@@ -771,7 +790,26 @@ function expiry_age_mod($age, $mod) {
 	}
 	return $age;
 }
+// Adjust seconds into human readable time
+function expiry_age_mod_reverse($ss) {
 
+	$s = $ss%60;
+	$m = floor(($ss%3600)/60);
+	$h = floor(($ss%86400)/3600);
+	$d = null;
+	$w = null;
+
+	if(floor(($ss%604800)/86400)>0) { 
+		$d = floor(($ss%604800)/86400) . " d"; 
+	}
+	if( floor($ss/604800)>0) { 
+		$w = floor($ss/604800)." wk";
+	}
+
+	return "$w $d $h:$m:$s";
+
+
+}
 // intercept template
 function expiry_display_expired($keyword, $result) {
 
