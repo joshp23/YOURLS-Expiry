@@ -35,3 +35,7 @@ function add_link_expiry() {
 		}
 	);
 }
+// dealing with the expiry list form
+function setExpiryCookie(name,value) {
+    document.cookie = name + "=" + (value || "");
+}

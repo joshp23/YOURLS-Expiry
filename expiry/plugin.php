@@ -3,7 +3,7 @@
 Plugin Name: Expiry
 Plugin URI: https://github.com/joshp23/YOURLS-Expiry
 Description: Will set expiration conditions on your links (or not)
-Version: 1.3.1
+Version: 1.4.0
 Author: Josh Panter
 Author URI: https://unfettered.net
 */
@@ -336,7 +336,7 @@ echo <<<HTML
 			</thead>
 			<tbody>
 				<tr>
-					<td><input type="text" name="shorturl" size=8></td>
+					<td><input type="text" name="shorturl" id="shorturl" size="8" value=""></td>
 					<td>
 						<select name="expiry" id="expiry" size="1" >
 							<option value="none" selected="selected" >Select  One</option>
@@ -372,15 +372,19 @@ HTML;
 		foreach( $expiry_list as $expiry ) {
 			$kword  = $expiry->keyword;
 			$type   = $expiry->type;
-			$click  = $expiry->click;
-			$fresh  = $expiry->timestamp;
-			$stale  = $expiry->shelflife;
 			$postx  = $expiry->postexpire;
 			$death  = null;
+			$click  = null;
 			if( $type == 'clock' ) {
+				$fresh  = $expiry->timestamp;
+				$stale  = $expiry->shelflife;
 				$death  = ($stale - (time() - $fresh));
 				$death  = expiry_age_mod_reverse($death);
 			}
+			if( $type == 'click' ) {
+				$click  = $expiry->click;
+			}
+			
 			$remove = ''. $_SERVER['PHP_SELF'] .'?page=expiry&action=remove&key='. $kword .'';
 			$strip  = ''. $_SERVER['PHP_SELF'] .'?page=expiry&action=no_postx&key='. $kword .'';
 			// print if there is any data
@@ -417,15 +421,45 @@ echo <<<HTML
 					$('#postx').prop('disabled', false);       
 				}
 		});
+		function getExpiryCookie(name) {
+			var nameEQ = name + "=";
+			var ca = document.cookie.split(';');
+			for(var i=0;i < ca.length;i++) {
+				var c = ca[i];
+				while (c.charAt(0)==' ') c = c.substring(1,c.length);
+				if (c.indexOf(nameEQ) == 0) return c.substring(nameEQ.length,c.length);
+			}
+			return null;
+		}
+		var alias = getExpiryCookie('expiry');
+		if (alias != "") {
+         document.getElementById('shorturl').value = alias;
+			$(window).unload(function() {
+				document.cookie = 'expiry'+'=; Max-Age=-99999999;';  
+			});
+		}
 	</script>
 HTML;
 }
 
-// Expiry_add_new JS function
-yourls_add_action('html_head', 'expiry_js');
-function expiry_js(){
+// Add a Expiry Button to the Admin interface
+yourls_add_filter( 'action_links', 'expiry_admin_button' );
+function expiry_admin_button( $action_links, $keyword, $url, $ip, $clicks, $timestamp ) {
+
+	$home = YOURLS_SITE . "/admin/plugins.php?page=expiry#stat_tab_exp_list";
+
+	// Add the Refetch button to the action links list
+	$action_links .= '<a href='.$home.' title="Expiry" onclick=setExpiryCookie("expiry","'.$keyword.'"); class="button button_expiry">Add Expiry Data</a>';
+
+ 	return $action_links;
+}
+
+// Expiry extras
+yourls_add_action('html_head', 'expiry_assets');
+function expiry_assets(){
 	echo "\n<! --------------------------Expiry Start-------------------------- >\n";
 	echo "<script src=\"". yourls_plugin_url( dirname( __FILE__ ) ). "/assets/expiry.js\" type=\"text/javascript\"></script>\n" ;
+	echo "<link rel=\"stylesheet\" href=\"". yourls_plugin_url( dirname( __FILE__ ) ) . "/assets/expiry.css\" type=\"text/css\" />\n";
 	echo "<! --------------------------Expiry END---------------------------- >\n";
 }
 

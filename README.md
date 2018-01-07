@@ -23,7 +23,12 @@ The databse ought to create itself, if not, there is an sql file in the `expiry/
    - add and update individual links with precise detail
    - manage database with a cron call (pre-formatted example provided)
       - prune expired links that haven't been visited in a while, etc.
-- public interface post requests and admin page requests
+- add expiry data in various ways
+   - via public interface (new url)
+   - via regular admin new url form (new url)
+   - via expiry page (old url)
+      - directly or by way of admin area action link button
+- admin action link button
 
 ##### What's Planned:
 -  Integrate expiry data to stats page OR stand alone expiry stats page.
