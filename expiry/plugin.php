@@ -3,7 +3,7 @@
 Plugin Name: Expiry
 Plugin URI: https://github.com/joshp23/YOURLS-Expiry
 Description: Will set expiration conditions on your links (or not)
-Version: 1.2.0
+Version: 1.3.0
 Author: Josh Panter
 Author URI: https://unfettered.net
 */
@@ -401,16 +401,15 @@ echo <<<HTML
 HTML;
 }
 
-// Admin Page JS
-yourls_add_action('html_addnew', 'expiry_js');
+// Expiry_add_new JS function
+yourls_add_action('html_head', 'expiry_js');
 function expiry_js(){
 	echo "\n<! --------------------------Expiry Start-------------------------- >\n";
 	echo "<script src=\"". yourls_plugin_url( dirname( __FILE__ ) ). "/assets/expiry.js\" type=\"text/javascript\"></script>\n" ;
 	echo "<! --------------------------Expiry END---------------------------- >\n";
 }
-/*
-// dependent upon PR 2345 https://github.com/YOURLS/YOURLS/pull/2345
-// use above javascript in the meantime
+
+// Change Admin page New URL submission form
 yourls_add_filter( 'shunt_html_addnew', 'expiry_override_html_addnew' );
 function expiry_override_html_addnew( $shunt, $url, $keyword ) {
 	?>
@@ -469,7 +468,7 @@ function expiry_override_html_addnew( $shunt, $url, $keyword ) {
 	<?php 
 	return $shunt = true;
 }
-*/
+
 // Mark expiry links on admin page
 yourls_add_filter( 'table_add_row', 'show_expiry_tablerow' );
 function show_expiry_tablerow($row, $keyword, $url, $title, $ip, $clicks, $timestamp) {

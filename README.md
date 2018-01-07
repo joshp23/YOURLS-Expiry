@@ -2,6 +2,7 @@
 [YOURLS](https://github.com/YOURLS/YOURLS) plugin to define conditions under which links will expire - time and click limited links
 
 #### Installation
+Requires YOURLS 1.7.3, commit [dd78d7f](https://github.com/YOURLS/YOURLS/commit/dd78d7f226017b8dbba4f2e9ee4baafe759a7dee) + from YOURLS master.  
 As any YOURLS plugin:
 -  Extract the `expiry` folder from this repo, and place it at `user/plugins/expiry`
 -  Enable in admin area
@@ -31,5 +32,3 @@ The databse ought to create itself, if not, there is an sql file in the `expiry/
 
 ###### Note: 
  Uses code adapted from the [Change Error Msgs](https://github.com/adigitalife/yourls-change-error-messages) plugin.
-
- A [pull request](https://github.com/YOURLS/YOURLS/pull/2345/commits/1546416dbefee8f21030f28d165eb14a5ba7eae6) with an additional YOURLS filter has been submitted to YOURLS/YOURLS for assistence with the admin page stuff, in the meantime, included javascript gets the job done.
