@@ -2,7 +2,8 @@
 [YOURLS](https://github.com/YOURLS/YOURLS) plugin to define conditions under which links will expire - time and click limited links
 
 #### Installation
-Requires YOURLS 1.7.3, commit [dd78d7f](https://github.com/YOURLS/YOURLS/commit/dd78d7f226017b8dbba4f2e9ee4baafe759a7dee) + from YOURLS master.  
+Requires YOURLS 1.7.3 (commit [dd78d7f](https://github.com/YOURLS/YOURLS/commit/dd78d7f226017b8dbba4f2e9ee4baafe759a7dee) + from YOURLS master). 
+ 
 As any YOURLS plugin:
 -  Extract the `expiry` folder from this repo, and place it at `user/plugins/expiry`
 -  Enable in admin area
