@@ -3,7 +3,7 @@
 Plugin Name: Expiry
 Plugin URI: https://github.com/joshp23/YOURLS-Expiry
 Description: Will set expiration conditions on your links (or not)
-Version: 1.4.0
+Version: 1.5.0
 Author: Josh Panter
 Author URI: https://unfettered.net
 */
@@ -447,6 +447,15 @@ echo <<<HTML
 HTML;
 }
 
+// Expiry extras
+yourls_add_action('html_head', 'expiry_assets');
+function expiry_assets(){
+	echo "\n<! --------------------------Expiry Start-------------------------- >\n";
+	echo "<script src=\"". yourls_plugin_url( dirname( __FILE__ ) ). "/assets/expiry.js\" type=\"text/javascript\"></script>\n" ;
+	echo "<link rel=\"stylesheet\" href=\"". yourls_plugin_url( dirname( __FILE__ ) ) . "/assets/expiry.css\" type=\"text/css\" />\n";
+	echo "<! --------------------------Expiry END---------------------------- >\n";
+}
+
 // Add a Expiry Button to the Admin interface
 yourls_add_filter( 'action_links', 'expiry_admin_button' );
 function expiry_admin_button( $action_links, $keyword, $url, $ip, $clicks, $timestamp ) {
@@ -457,13 +466,16 @@ function expiry_admin_button( $action_links, $keyword, $url, $ip, $clicks, $time
  	return $action_links;
 }
 
-// Expiry extras
-yourls_add_action('html_head', 'expiry_assets');
-function expiry_assets(){
-	echo "\n<! --------------------------Expiry Start-------------------------- >\n";
-	echo "<script src=\"". yourls_plugin_url( dirname( __FILE__ ) ). "/assets/expiry.js\" type=\"text/javascript\"></script>\n" ;
-	echo "<link rel=\"stylesheet\" href=\"". yourls_plugin_url( dirname( __FILE__ ) ) . "/assets/expiry.css\" type=\"text/css\" />\n";
-	echo "<! --------------------------Expiry END---------------------------- >\n";
+// Expiry data in Share box on admin page
+yourls_add_action('yourls_ajax_expiry-stats', 'expiry_stats_ajax');
+function expiry_stats_ajax() {
+	$return = expiry_stats_api();
+	echo json_encode($return);
+}
+yourls_add_filter( 'table_head_start', 'expiry_stats_admin');
+function expiry_stats_admin($start) {
+	$newStart = '<div style="text-align:center; padding-top: 5px;"id="exp_result" class="text-success"></div>'."\n".$start;
+	return $newStart;
 }
 
 // Change Admin page New URL submission form
@@ -589,7 +601,6 @@ function expiry_stats($keyword) {
 
 	echo $result . $postx_info;
 }
-
 /*
  *
  * 	Form submissions
@@ -684,6 +695,7 @@ function expiry_flush() {
 		}
 	}
 }
+
 /*
  *
  * Expiry Checking
@@ -1186,7 +1198,6 @@ function expiry_old_link() {
 
 	return yourls_apply_filter( 'after_expiry_old_link', $return, $url, $keyword, $title );
 }
-
 // Check Shortlink expiry data
 yourls_add_filter( 'api_action_expiry-stats', 'expiry_stats_api' );
 function expiry_stats_api() {

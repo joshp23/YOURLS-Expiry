@@ -39,3 +39,23 @@ function add_link_expiry() {
 function setExpiryCookie(name,value) {
     document.cookie = name + "=" + (value || "");
 }
+// expiry info on admin page
+function expiry_infos(url) {
+	var shorturl = ( url == null ? $( '#copylink' ).val() : url );
+	$.ajax({
+		type: "GET",
+		url: ajaxurl,
+		data:{action:'expiry-stats', shorturl: shorturl},
+		success: function(data) {
+			var smpl = data.simple;
+			var msg = '<div style="padding:4px;border:1px solid #CDCDCD;background:#C7E7FF;clear:both;"><strong>Expiry: </strong>' + smpl + '</div>';
+			$(exp_result).html(msg);
+		}
+	});
+}
+$(document).ready( function( ){
+	// Share button behavior
+	$( '.button_share' ).click( function( ){
+		expiry_infos( );
+	});			
+});
