@@ -31,9 +31,7 @@ The databse ought to create itself, if not, there is an sql file in the `expiry/
 - admin action link button
 
 ##### What's Planned:
--  Integrate expiry data to stats page OR stand alone expiry stats page.
--  simple and robust options for updating expiry data via the list page (add X clicks or days to expiry, etc...)
--  api to call for expiry data
+-  Integrate expiry data to admin page list (when share button is clicked).
 
 ###### Note: 
  Uses code adapted from the [Change Error Msgs](https://github.com/adigitalife/yourls-change-error-messages) plugin.

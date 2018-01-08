@@ -7,7 +7,6 @@ Version: 1.4.0
 Author: Josh Panter
 Author URI: https://unfettered.net
 */
-// TODO expiry data in stats page
 // No direct call
 if( !defined( 'YOURLS_ABSPATH' ) ) die();
 /*
@@ -252,6 +251,7 @@ echo <<<HTML
 				<ul>
 					<li>Add expiration data to a new short url</li>
 					<li>Add expiration data to an old short url</li>
+					<li>Retrieve expiration data for a short url</li>
 					<li>Prune the database according to expiration data</li>
 				</ul>
 				<div style="padding-left: 10pt;border-left:1px solid blue;border-bottom:1px solid blue;">
@@ -286,6 +286,14 @@ echo <<<HTML
 						<li><code>action = "expiry"</code></li>
 						<li><code>shorturl = URL</code></li>
 					</ul>
+				</div>				
+				<div style="padding-left: 10pt;border-left:1px solid blue;border-bottom:1px solid blue;">
+					<h3>Retrieving expiry data for any short url</h3>
+					<p>Send the new action:</p>
+					<ul>
+						<li><code>action = "expiry-stats"</code></li>
+						<li><code>shorturl = URL</code></li>
+					</ul>
 				</div>
 				<div style="padding-left: 10pt;border-left:1px solid blue;border-bottom:1px solid blue;">
 					<h3>Prune the database</h3>
@@ -317,9 +325,6 @@ HTML;
 function expiry_list($nonce) {
 	global $ydb;
 echo <<<HTML
-	<p>Not all values are required. For Expiry type: clicks, only count is required.</p>
-	<p>For Expiry type: clock, time and time unit are required. That is all.</p>
-	
 	<form method="post">
 		<table id="main_table" class="tblSorter" border="1" cellpadding="5" style="border-collapse: collapse">
 			<thead>
@@ -447,8 +452,6 @@ yourls_add_filter( 'action_links', 'expiry_admin_button' );
 function expiry_admin_button( $action_links, $keyword, $url, $ip, $clicks, $timestamp ) {
 
 	$home = YOURLS_SITE . "/admin/plugins.php?page=expiry#stat_tab_exp_list";
-
-	// Add the Refetch button to the action links list
 	$action_links .= '<a href='.$home.' title="Expiry" onclick=setExpiryCookie("expiry","'.$keyword.'"); class="button button_expiry">Add Expiry Data</a>';
 
  	return $action_links;
@@ -550,7 +553,44 @@ function show_expiry_tablerow($row, $keyword, $url, $title, $ip, $clicks, $times
 	} else {
 	return $row;
 	}
-}/*
+}
+// Expiry data for info page stats tab
+yourls_add_action('pre_yourls_info_stats', 'expiry_stats');
+function expiry_stats($keyword) {
+
+	$args = array("expiry_infos", $keyword[0]);
+	$infos = expiry_check( $args);
+
+	if( isset($infos[3])  && $infos[3] !=='' && $infos[3] !== 'none') { 
+		$postx_info = "<br><strong>Note</strong>: This link will redirect to <strong>".$infos[3]."</strong> after expiration.";
+	} else {
+		$postx_info = null;
+	}
+
+	if($infos[0] !== false) {
+				$result = "<strong>Expiry</strong>: " . "This link is a ". $infos[0] .", it is beyond expiration.";
+	} else {
+
+		switch ($infos[1]) {
+			case 'none':
+				$result = "<strong>Expiry</strong>: No expiry data set.";
+				break;
+			case 'click':
+				$result = "<strong>Expiry</strong>: Short URL has <strong>".$infos[2]."</strong> clicks left.";
+				break;
+
+			case 'clock':
+				$result = "<strong>Expiry</strong>: Short URL will expire in <strong>".$infos[2]."</strong> .";
+				break;
+			default:
+				$result = "Not able to retrieve expiry data, please check your configuraiton (call).";
+		}
+	}
+
+	echo $result . $postx_info;
+}
+
+/*
  *
  * 	Form submissions
  *
@@ -678,9 +718,9 @@ function expiry_check( $args ) {
 			
 			if ( $clicks >= $count ) {
 				$result = 'click-bomb';
-			} else {
-				$result = false;
 			}
+
+			$life = $count - $clicks;
 		}
 
 		elseif( $expiry['type'] == 'clock' ) {
@@ -690,21 +730,40 @@ function expiry_check( $args ) {
 
 			if( ( time() - $fresh)  >= $stale ) {
 				$result = 'time-bomb';	
-			} else {
-				$result = false;
 			}
+			
+			$death  = ($stale - (time() - $fresh));
+			$life = expiry_age_mod_reverse($death);
+
 		}
-		
+	
+		$opt = expiry_config();
+		$gpx = $opt[5] == 'false' ? null : $opt[4];
+		$postx  = (isset($expiry['postexpire']) ? $expiry['postexpire'] : $gpx);
+
+		if( $args[0] == "expiry_infos" ) {
+
+			return array (
+				$result,
+				$expiry['type'],
+				$life,
+				$postx
+			);
+		}
+
 		if($result !== false) {
 
-			$opt = expiry_config();
-
-			$gpx = $opt[5] == 'false' ? null : $opt[4];
-			$postx  = (isset($expiry['postexpire']) ? $expiry['postexpire'] : $gpx);
 			expiry_router($keyword, $result, $postx);
+		}
+
+	} else {
+
+		if( $args[0] == "expiry_infos") {
+			return array(false, 'none');
 		}
 	}
 }
+
 // expiry check ~ router
 function expiry_router($keyword, $result, $postx) {
 	// try to edit maybe
@@ -834,10 +893,18 @@ function expiry_age_mod_reverse($ss) {
 	$w = null;
 
 	if(floor(($ss%604800)/86400)>0) { 
-		$d = floor(($ss%604800)/86400) . " d"; 
+		if(floor(($ss%604800)/86400)==1) { 
+			$d = floor(($ss%604800)/86400) . " day, "; 
+		} else {
+			$d = floor(($ss%604800)/86400) . " days, "; 
+		}
 	}
 	if( floor($ss/604800)>0) { 
-		$w = floor($ss/604800)." wk";
+		if( floor($ss/604800)==1) { 
+			$w = floor($ss/604800)." wk,";
+		} else {
+			$w = floor($ss/604800)." wks,";
+		}
 	}
 
 	return "$w $d $h:$m:$s";
@@ -1120,6 +1187,93 @@ function expiry_old_link() {
 	return yourls_apply_filter( 'after_expiry_old_link', $return, $url, $keyword, $title );
 }
 
+// Check Shortlink expiry data
+yourls_add_filter( 'api_action_expiry-stats', 'expiry_stats_api' );
+function expiry_stats_api() {
+
+	if( !isset( $_REQUEST['shorturl'] ) ) {
+		return array(
+			'statusCode' => 400,
+			'simple'     => "Need a 'shorturl' parameter",
+			'message'    => 'error: missing shorturl param',
+		);	
+	}
+
+	$shorturl = $_REQUEST['shorturl'];
+
+	if( !yourls_is_shorturl( $shorturl ) ) {
+		return array(
+			'statusCode' => 400,
+			'simple'     => "Not a valid short url",
+			'message'    => 'error: bad url',
+		);	
+	}
+
+	$keyword = str_replace( YOURLS_SITE . '/' , '', $shorturl ); // accept either 'http://ozh.in/abc' or 'abc'
+	$keyword = yourls_sanitize_string( $keyword );
+
+	$args = array("expiry_infos", $keyword);
+	$infos = expiry_check( $args);
+
+	if( isset($infos[3])  && $infos[3] !=='' && $infos[3] !== 'none') { 
+		$postx_info = "This link will redirect to ".$infos[3]." after expiration.";
+		$postx_data = $infos[3];
+	} else {
+		$postx_info = null;
+		$postx_data = 'none';
+	}
+
+	if($infos[0] !== false) {
+		return array(
+			'statusCode' => 200,
+			'expiry'	 => $infos[1],
+			'postx'		 => $postx_data,
+			'simple'     => "This link is a ". $infos[0] .", it is beyond expiration. ".$postx_info,
+			'message'    => "This link is a ". $infos[0] .", it is beyond expiration. ".$postx_info
+		);
+	} else {
+
+		switch ($infos[1]) {
+			case 'none':
+				return array(
+					'statusCode' => 200,
+					'expiry		'=> 'none',
+					'simple'     => "No expiry data set.",
+					'message'    => "No expiry data set."
+				);
+				break;
+			case 'click':
+				return array(
+					'statusCode' => 200,
+					'expiry'	 => 'click',
+					'countdown'  => $infos[2],
+					'postx'		 => $postx_data,
+					'simple'     => "Short URL has ".$infos[2]." clicks left. ".$postx_info,
+					'message'    => "Short URL has ".$infos[2]." clicks left. ".$postx_info
+				);
+				break;
+
+			case 'clock':
+				return array(
+					'statusCode' => 200,
+					'expiry_type'=> 'clock',
+					'countdown'  => $infos[2],
+					'postx'		 => $postx_data,
+					'simple'     => "Short URL will expire in ".$infos[2]." . ".$postx_info,
+					'message'    => "Short URL will expire in ".$infos[2]." . ".$postx_info
+				);
+				break;
+			default:				
+				return array(
+					'statusCode' => 400,
+					'simple'     => "Not able to retrieve expiry data, please check your configuraiton (call).",
+					'message'    => "Not able to retrieve expiry data, please check your configuraiton (call)."
+				);
+				break;
+		}
+	}
+}
+
 // Prune away expired links
 yourls_add_filter( 'api_action_prune', 'expiry_prune_api' );
 function expiry_prune_api() {
@@ -1205,6 +1359,7 @@ function expiry_prune_api() {
 			}
 	}
 }
+
 /*
  *
  *	Database
