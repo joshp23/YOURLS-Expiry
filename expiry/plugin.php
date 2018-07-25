@@ -375,6 +375,7 @@ HTML;
 
 	if($expiry_list) {
 		foreach( $expiry_list as $expiry ) {
+			$base	= YOURLS_SITE;
 			$kword  = $expiry->keyword;
 			$type   = $expiry->type;
 			$postx  = $expiry->postexpire;
@@ -401,8 +402,8 @@ HTML;
 					<td>$death</td>
 					<td></td>
 					<td>$postx</td>
-					<td><a href="$remove">Remove Expiry <img src="/images/delete.png" title="UnExpire" border=0></a></td>
-					<td><a href="$strip">Strip Postx <img src="/images/delete.png" title="UnPostExpiry" border=0></a></td>
+					<td><a href="$remove">Remove Expiry <img src="$base/images/delete.png" title="UnExpire" border=0></a></td>
+					<td><a href="$strip">Strip Postx <img src="$base/images/delete.png" title="UnPostExpiry" border=0></a></td>
 				</tr>
 HTML;
 		}
