@@ -3,7 +3,7 @@
 Plugin Name: Expiry
 Plugin URI: https://github.com/joshp23/YOURLS-Expiry
 Description: Will set expiration conditions on your links (or not)
-Version: 1.5.2
+Version: 1.5.3
 Author: Josh Panter
 Author URI: https://unfettered.net
 */
@@ -715,7 +715,6 @@ function expiry_check( $args ) {
 	$sql = "SELECT * FROM $table WHERE `keyword` = :keyword";
 	$binds = array('keyword' => $keyword);
 	$expiry = $ydb->fetchOne($sql, $binds);
-	
 	if( $expiry ) {
 	
 		$result = false;
@@ -1439,7 +1438,8 @@ function expiry_db_flush( $type ) {
 			if($expiry_list) {
 				foreach( $expiry_list as $expiry ) {		
 					$keyword = $expiry->keyword;
-					expiry_check('prune', $keyword);
+					$args = array("prune", $keyword);
+					expiry_check($args);
 				}
 			}
 
@@ -1488,7 +1488,8 @@ function expiry_db_flush( $type ) {
 			if($expiry_list) {
 				foreach( $expiry_list as $expiry ) {		
 					$keyword = $expiry->keyword;
-					expiry_check('prune', $keyword);
+					$args = array("prune", $keyword);
+					expiry_check($args);
 				}
 			}
 
