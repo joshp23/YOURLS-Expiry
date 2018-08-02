@@ -3,7 +3,7 @@
 Plugin Name: Expiry
 Plugin URI: https://github.com/joshp23/YOURLS-Expiry
 Description: Will set expiration conditions on your links (or not)
-Version: 1.5.4
+Version: 1.5.5
 Author: Josh Panter
 Author URI: https://unfettered.net
 */
@@ -19,6 +19,20 @@ if( !defined( 'YOURLS_ABSPATH' ) ) die();
 yourls_add_action( 'plugins_loaded', 'expiry_add_pages' );
 function expiry_add_pages() {
         yourls_register_plugin_page( 'expiry', 'Expiry', 'expiry_do_page' );
+}
+// Display page 0.01 - maybe insert some JS and CSS files to head
+yourls_add_action( 'html_head', 'expiry_head' );
+function expiry_head() {
+	if ( YOURLS_JP23_HEAD_FILES == false || YOURLS_JP23_HEAD_FILES == null ) {
+
+		define( 'YOURLS_JP23_HEAD_FILES', true );
+
+		echo "\n<! --------------------------JP23_HEAD_FILES Start-------------------------- >\n";
+		echo "<link rel=\"stylesheet\" href=\"/css/infos.css\" type=\"text/css\" media=\"screen\" />\n";
+		echo "<script src=\"/js/infos.js\" type=\"text/javascript\"></script>\n";
+		echo "<! --------------------------JP23_HEAD_FILES END---------------------------- >\n";
+
+	}
 }
 function expiry_do_page() {
 
@@ -74,8 +88,6 @@ function expiry_do_page() {
 	$cronEG   =  rawurlencode('<html><body><pre>0 * * * * wget -O - -q -t 1 <strong>'.$site.'</strong>/yourls-api.php?signature=<strong>'.$sig.'</strong>&format=simple&action=prune&scope=expired >/dev/null 2>&1</pre></body></html>');
 
 echo <<<HTML
-	<link rel="stylesheet" href="/css/infos.css" type="text/css" media="screen">
-	<script src="/js/infos.js" type="text/javascript"></script>
 	<div id="wrap">
 		<div id="tabs">
 
