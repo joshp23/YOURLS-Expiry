@@ -3,7 +3,7 @@
 Plugin Name: Expiry
 Plugin URI: https://github.com/joshp23/YOURLS-Expiry
 Description: Will set expiration conditions on your links (or not)
-Version: 1.5.5
+Version: 1.5.6
 Author: Josh Panter
 Author URI: https://unfettered.net
 */
@@ -23,7 +23,7 @@ function expiry_add_pages() {
 // Display page 0.01 - maybe insert some JS and CSS files to head
 yourls_add_action( 'html_head', 'expiry_head' );
 function expiry_head() {
-	if ( YOURLS_JP23_HEAD_FILES == false || YOURLS_JP23_HEAD_FILES == null ) {
+	if ( YOURLS_JP23_HEAD_FILES !== true ) {
 
 		define( 'YOURLS_JP23_HEAD_FILES', true );
 
@@ -1507,7 +1507,7 @@ function expiry_db_flush( $type ) {
 					$sql = "TRUNCATE TABLE $table";
 					$ydb->fetchAffected($sql);
 				} else {
-					$ydb->query("TRUNCATE TABLE `$table`")
+					$ydb->query("TRUNCATE TABLE `$table`");
 				}
 
 				yourls_update_option('expiry_init', time());
