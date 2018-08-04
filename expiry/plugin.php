@@ -23,6 +23,8 @@ function expiry_add_pages() {
 // Display page 0.01 - maybe insert some JS and CSS files to head
 yourls_add_action( 'html_head', 'expiry_head' );
 function expiry_head() {
+	// From header, above. There has to be a better way to do this?
+	$ver = "1.5.7"
 	if ( YOURLS_JP23_HEAD_FILES == null ) {
 		define( 'YOURLS_JP23_HEAD_FILES', true );
 
@@ -32,9 +34,12 @@ function expiry_head() {
 		echo "<! --------------------------JP23_HEAD_FILES END---------------------------- >\n";
 	}
 	$loc = yourls_plugin_url(dirname(__FILE__));
+	$file = dirname( __FILE__ )."/plugin.php";
+	$data = yourls_get_plugin_data( $file );
+	$v = $data['Version'];
 	echo "\n<! --------------------------Expiry Start-------------------------- >\n";
-	echo "<script src=\"".$loc."/assets/expiry.js?v=".YOURLS_VERSION."\" type=\"text/javascript\"></script>\n";
-	echo "<link rel=\"stylesheet\" href=\"".$loc."/assets/expiry.css?v=".YOURLS_VERSION."\" type=\"text/css\" />\n";
+	echo "<script src=\"".$loc."/assets/expiry.js?v=".$v."\" type=\"text/javascript\"></script>\n";
+	echo "<link rel=\"stylesheet\" href=\"".$loc."/assets/expiry.css?v=".$v."\" type=\"text/css\" />\n";
 	echo "<! --------------------------Expiry END---------------------------- >\n";
 }
 function expiry_do_page() {
