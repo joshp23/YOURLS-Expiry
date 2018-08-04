@@ -24,7 +24,6 @@ function expiry_add_pages() {
 yourls_add_action( 'html_head', 'expiry_head' );
 function expiry_head() {
 	// From header, above. There has to be a better way to do this?
-	$ver = "1.5.7"
 	if ( YOURLS_JP23_HEAD_FILES == null ) {
 		define( 'YOURLS_JP23_HEAD_FILES', true );
 
