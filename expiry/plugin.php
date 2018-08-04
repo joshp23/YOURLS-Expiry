@@ -3,7 +3,7 @@
 Plugin Name: Expiry
 Plugin URI: https://github.com/joshp23/YOURLS-Expiry
 Description: Will set expiration conditions on your links (or not)
-Version: 1.5.6
+Version: 1.5.7
 Author: Josh Panter
 Author URI: https://unfettered.net
 */
@@ -23,16 +23,19 @@ function expiry_add_pages() {
 // Display page 0.01 - maybe insert some JS and CSS files to head
 yourls_add_action( 'html_head', 'expiry_head' );
 function expiry_head() {
-	if ( YOURLS_JP23_HEAD_FILES !== true ) {
-
+	if ( YOURLS_JP23_HEAD_FILES == null ) {
 		define( 'YOURLS_JP23_HEAD_FILES', true );
 
 		echo "\n<! --------------------------JP23_HEAD_FILES Start-------------------------- >\n";
-		echo "<link rel=\"stylesheet\" href=\"/css/infos.css\" type=\"text/css\" media=\"screen\" />\n";
-		echo "<script src=\"/js/infos.js\" type=\"text/javascript\"></script>\n";
+		echo "<link rel=\"stylesheet\" href=\"".yourls_site_url()."/css/infos.css".YOURLS_VERSION."\" type=\"text/css\" media=\"screen\" />\n";
+		echo "<script src=\"".yourls_site_url()."/js/infos.js".YOURLS_VERSION."\" type=\"text/javascript\"></script>\n";
 		echo "<! --------------------------JP23_HEAD_FILES END---------------------------- >\n";
-
 	}
+	$loc = yourls_plugin_url(dirname(__FILE__));
+	echo "\n<! --------------------------Expiry Start-------------------------- >\n";
+	echo "<script src=\"".$loc."/assets/expiry.js".YOURLS_VERSION."\" type=\"text/javascript\"></script>\n";
+	echo "<link rel=\"stylesheet\" href=\"".$loc."/assets/expiry.css".YOURLS_VERSION."\" type=\"text/css\" />\n";
+	echo "<! --------------------------Expiry END---------------------------- >\n";
 }
 function expiry_do_page() {
 
@@ -461,15 +464,6 @@ echo <<<HTML
 		}
 	</script>
 HTML;
-}
-
-// Expiry extras
-yourls_add_action('html_head', 'expiry_assets');
-function expiry_assets(){
-	echo "\n<! --------------------------Expiry Start-------------------------- >\n";
-	echo "<script src=\"". yourls_plugin_url( dirname( __FILE__ ) ). "/assets/expiry.js\" type=\"text/javascript\"></script>\n" ;
-	echo "<link rel=\"stylesheet\" href=\"". yourls_plugin_url( dirname( __FILE__ ) ) . "/assets/expiry.css\" type=\"text/css\" />\n";
-	echo "<! --------------------------Expiry END---------------------------- >\n";
 }
 
 // Add a Expiry Button to the Admin interface
