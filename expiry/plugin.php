@@ -27,14 +27,14 @@ function expiry_head() {
 		define( 'YOURLS_JP23_HEAD_FILES', true );
 
 		echo "\n<! --------------------------JP23_HEAD_FILES Start-------------------------- >\n";
-		echo "<link rel=\"stylesheet\" href=\"".yourls_site_url()."/css/infos.css".YOURLS_VERSION."\" type=\"text/css\" media=\"screen\" />\n";
-		echo "<script src=\"".yourls_site_url()."/js/infos.js".YOURLS_VERSION."\" type=\"text/javascript\"></script>\n";
+		echo "<link rel=\"stylesheet\" href=\"".yourls_site_url()."/css/infos.css?v=".YOURLS_VERSION."\" type=\"text/css\" media=\"screen\" />\n";
+		echo "<script src=\"".yourls_site_url()."/js/infos.js?v=".YOURLS_VERSION."\" type=\"text/javascript\"></script>\n";
 		echo "<! --------------------------JP23_HEAD_FILES END---------------------------- >\n";
 	}
 	$loc = yourls_plugin_url(dirname(__FILE__));
 	echo "\n<! --------------------------Expiry Start-------------------------- >\n";
-	echo "<script src=\"".$loc."/assets/expiry.js".YOURLS_VERSION."\" type=\"text/javascript\"></script>\n";
-	echo "<link rel=\"stylesheet\" href=\"".$loc."/assets/expiry.css".YOURLS_VERSION."\" type=\"text/css\" />\n";
+	echo "<script src=\"".$loc."/assets/expiry.js?v=".YOURLS_VERSION."\" type=\"text/javascript\"></script>\n";
+	echo "<link rel=\"stylesheet\" href=\"".$loc."/assets/expiry.css?v=".YOURLS_VERSION."\" type=\"text/css\" />\n";
 	echo "<! --------------------------Expiry END---------------------------- >\n";
 }
 function expiry_do_page() {
@@ -87,7 +87,7 @@ function expiry_do_page() {
 	
 	// Misc for cron example pre-formatting
 	$sig	= yourls_auth_signature();
-	$site   = YOURLS_SITE;
+	$site   = yourls_site_url();
 	$cronEG   =  rawurlencode('<html><body><pre>0 * * * * wget -O - -q -t 1 <strong>'.$site.'</strong>/yourls-api.php?signature=<strong>'.$sig.'</strong>&format=simple&action=prune&scope=expired >/dev/null 2>&1</pre></body></html>');
 
 echo <<<HTML
@@ -393,7 +393,7 @@ HTML;
 	}
 	if($expiry_list) {
 		foreach( $expiry_list as $expiry ) {
-			$base	= YOURLS_SITE;
+			$base	= yourls_site_url();
 			$kword  = $expiry->keyword;
 			$type   = $expiry->type;
 			$postx  = $expiry->postexpire;
@@ -952,7 +952,7 @@ function expiry_age_mod_reverse($ss) {
 // intercept template
 function expiry_display_expired($keyword, $result) {
 
-	$base	= YOURLS_SITE;
+	$base	= yourls_site_url();
 	$img	= yourls_plugin_url( dirname( __FILE__ ).'/assets/caution.png' );
 	$css 	= yourls_plugin_url( dirname( __FILE__ ).'/assets/bootstrap.min.css' );
 
