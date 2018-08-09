@@ -3,7 +3,7 @@
 Plugin Name: Expiry
 Plugin URI: https://github.com/joshp23/YOURLS-Expiry
 Description: Will set expiration conditions on your links (or not)
-Version: 1.5.8
+Version: 1.5.9
 Author: Josh Panter
 Author URI: https://unfettered.net
 */
@@ -49,7 +49,7 @@ function expiry_do_page() {
 
 	// neccessary values for display
 	$globalExp = array("none" => " ", "click" => " ", "clock" => " ");
-	switch ($opt[5]) {
+	switch ($opt[9]) {
 		case 'click': $globalExp['click'] = 'selected'; break;
 		case 'clock': $globalExp['clock'] = 'selected'; break;
 		default:      $globalExp['none']  = 'selected'; break;
@@ -148,7 +148,7 @@ echo <<<HTML
 					<h3>Expiry Intercept Behavior</h3>
 					
 					<div style="padding-left: 10pt;border-left:1px solid blue;border-bottom:1px solid blue;">
-						<select name="expiry_global_expiry" size="1" >
+						<select name="expiry_intercept" size="1" >
 							<option value="simple" {$intercept['simple']}>YOURLS style</option>
 							<option value="template" {$intercept['template']}>Bootstrap Template</option>
 							<option value="custome" {$intercept['custome']}>Custome URL</option>
