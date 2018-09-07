@@ -3,7 +3,7 @@
 Plugin Name: Expiry
 Plugin URI: https://github.com/joshp23/YOURLS-Expiry
 Description: Will set expiration conditions on your links (or not)
-Version: 1.5.10
+Version: 1.5.11
 Author: Josh Panter
 Author URI: https://unfettered.net
 */
@@ -22,23 +22,21 @@ function expiry_add_pages() {
 }
 // Display page 0.01 - maybe insert some JS and CSS files to head
 yourls_add_action( 'html_head', 'expiry_head' );
-function expiry_head() {
-	if ( defined('YOURLS_JP23_HEAD_FILES') == false ) {
-		define( 'YOURLS_JP23_HEAD_FILES', true );
+function expiry_head($context) {
+	if ( $context[0] == 'plugin_page_expiry' ) {
 		$home = YOURLS_SITE;
-		echo "\n<! --------------------------JP23_HEAD_FILES Start-------------------------- >\n";
 		echo "<link rel=\"stylesheet\" href=\"".$home."/css/infos.css?v=".YOURLS_VERSION."\" type=\"text/css\" media=\"screen\" />\n";
 		echo "<script src=\"".$home."/js/infos.js?v=".YOURLS_VERSION."\" type=\"text/javascript\"></script>\n";
-		echo "<! --------------------------JP23_HEAD_FILES END---------------------------- >\n";
+	} elseif ($context[0] == 'index') {
+		$loc = yourls_plugin_url(dirname(__FILE__));
+		$file = dirname( __FILE__ )."/plugin.php";
+		$data = yourls_get_plugin_data( $file );
+		$v = $data['Version'];
+		echo "\n<! --------------------------Expiry Start-------------------------- >\n";
+		echo "<script src=\"".$loc."/assets/expiry.js?v=".$v."\" type=\"text/javascript\"></script>\n";
+		echo "<link rel=\"stylesheet\" href=\"".$loc."/assets/expiry.css?v=".$v."\" type=\"text/css\" />\n";
+		echo "<! --------------------------Expiry END---------------------------- >\n";
 	}
-	$loc = yourls_plugin_url(dirname(__FILE__));
-	$file = dirname( __FILE__ )."/plugin.php";
-	$data = yourls_get_plugin_data( $file );
-	$v = $data['Version'];
-	echo "\n<! --------------------------Expiry Start-------------------------- >\n";
-	echo "<script src=\"".$loc."/assets/expiry.js?v=".$v."\" type=\"text/javascript\"></script>\n";
-	echo "<link rel=\"stylesheet\" href=\"".$loc."/assets/expiry.css?v=".$v."\" type=\"text/css\" />\n";
-	echo "<! --------------------------Expiry END---------------------------- >\n";
 }
 function expiry_do_page() {
 
