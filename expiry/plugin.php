@@ -926,27 +926,17 @@ function expiry_age_mod($age, $mod) {
 function expiry_age_mod_reverse($ss) {
 
 	$s = $ss%60;
-	$m = floor(($ss%3600)/60);
-	$h = floor(($ss%86400)/3600);
+	$m = floor(($ss%3600)/60) . ':';
+	if ($m == 0) $m = ''; else if ($s < 10) $s = '0' . $s;
+	$h = floor(($ss%86400)/3600) . 'h';
+	if ($h == 0) $h = ''; else if ($m < 10) $m = '0' . $m;
 	$d = null;
 	$w = null;
 
-	if(floor(($ss%604800)/86400)>0) { 
-		if(floor(($ss%604800)/86400)==1) { 
-			$d = floor(($ss%604800)/86400) . " day, "; 
-		} else {
-			$d = floor(($ss%604800)/86400) . " days, "; 
-		}
-	}
-	if( floor($ss/604800)>0) { 
-		if( floor($ss/604800)==1) { 
-			$w = floor($ss/604800)." wk,";
-		} else {
-			$w = floor($ss/604800)." wks,";
-		}
-	}
+	$d = floor($ss/86400) . "d ";
+	if ($d == "0d ") $d = "";
 
-	return "$w $d $h:$m:$s";
+	return "$d$h$m$s";
 
 
 }
