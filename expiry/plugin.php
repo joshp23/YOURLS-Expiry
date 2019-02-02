@@ -3,7 +3,7 @@
 Plugin Name: Expiry
 Plugin URI: https://github.com/joshp23/YOURLS-Expiry
 Description: Will set expiration conditions on your links (or not)
-Version: 1.5.11
+Version: 1.5.12
 Author: Josh Panter
 Author URI: https://unfettered.net
 */
@@ -926,18 +926,16 @@ function expiry_age_mod($age, $mod) {
 function expiry_age_mod_reverse($ss) {
 
 	$s = $ss%60;
-	$m = floor(($ss%3600)/60) . ':';
-	if ($m == 0) $m = ''; else if ($s < 10) $s = '0' . $s;
-	$h = floor(($ss%86400)/3600) . 'h';
-	if ($h == 0) $h = ''; else if ($m < 10) $m = '0' . $m;
-	$d = null;
-	$w = null;
-
+	$m = floor(($ss%3600)/60);
+	$h = floor(($ss%86400)/3600);
 	$d = floor($ss/86400) . "d ";
+
+	if ($s < 10) $s = '0' . $s;
+	if ($m < 10) $m = '0' . $m;
+	if ($h < 10) $h = '0' . $h;
 	if ($d == "0d ") $d = "";
 
-	return "$d$h$m$s";
-
+	return "$d$h"."h".$m.":"."$s";
 
 }
 // intercept template
