@@ -3,7 +3,7 @@
 Plugin Name: Expiry
 Plugin URI: https://github.com/joshp23/YOURLS-Expiry
 Description: Will set expiration conditions on your links (or not)
-Version: 2.0.0
+Version: 2.0.1
 Author: Josh Panter
 Author URI: https://unfettered.net
 */
@@ -69,7 +69,7 @@ function expiry_do_page() {
 
 	$ciVisChk = ( $opt[0] !== 'custome' ? 'none' : 'inline' );
 
-	$unique = ( 'YOURLS_UNIQUE_URLS' == true ) ? ' disabled="disabled" <p><strong>Notice:</strong> <code>YOURLS_UNIQUE_URLS</code> is set to <code>true</code>. This value must be set to <code>false</code> to use this function.</p>' : ' > Use a global post-expiration URL?';
+	$unique = ( YOURLS_UNIQUE_URLS == true ) ? ' disabled="disabled" <p><strong>Notice:</strong> <code>YOURLS_UNIQUE_URLS</code> is set to <code>true</code>. This value must be set to <code>false</code> to use this function.</p>' : ' > Use a global post-expiration URL?';
 	
 	if( $opt[5] == 'false' ) {
 		$gpxVisChk = 'none';
@@ -495,7 +495,7 @@ function expiry_override_html_addnew( $shunt, $url, $keyword ) {
 			<form id="new_url_form" action="" method="get">
 				<div>
 					<strong><?php yourls_e( 'Enter the URL' ); ?></strong>:
-					<input type="text" id="add-url" name="url" value="<?php echo $url; ?>" class="text" size="80" placeholder="http://" />
+					<input type="text" id="add-url" name="url" value="<?php echo $url; ?>" class="text" size="80" placeholder="https://" />
 					<?php yourls_e( 'Optional '); ?> : <strong><?php yourls_e('Custom short URL'); ?></strong>:<input type="text" id="add-keyword" name="keyword" value="<?php echo $keyword; ?>" class="text" size="8" />
 					<?php yourls_nonce_field( 'add_url', 'nonce-add' ); ?>
 					<input type="button" id="add-button" name="add-button" value="<?php yourls_e( 'Shorten The URL' ); ?>" class="button" onclick="add_link_expiry();" />
@@ -525,7 +525,7 @@ function expiry_override_html_addnew( $shunt, $url, $keyword ) {
 					</div>
 				</div>
 			</form>
-				<div id="feedback" style="display:none"></div>
+			<div id="feedback" style="display:none"></div>
 		</div>
 		<?php yourls_do_action( 'html_addnew' ); ?>
 	</div>
@@ -801,16 +801,15 @@ function expiry_check( $args ) {
 // expiry check ~ router
 function expiry_router($keyword, $result, $postx) {
 	// try to edit maybe
-	if ( $postx !== null && $postx !=='' && $postx !== 'none') {
-	
-		$switch = yourls_edit_link( $postx, $keyword );
+	if ( $postx !== null && $postx !=='' && $postx !== 'none' && $postx !== 'false') {
 
-		if( $switch['status'] == 'success' ) {
+		if( yourls_edit_link( $postx, $keyword, $keyword ) ) {
 
-			expiry_cleanup( $keyword, $result );
+			$args[0] = $keyword;
+			expiry_cleanup( $args );
 
 			if ( !yourls_is_API() ) {
-				yourls_redirect_(YOURLS_SITE . '/' . $keyword, 302);
+				yourls_redirect($postx, 302);
 				die();
 			}
 		} else {
@@ -871,17 +870,17 @@ function expiry_config() {
 	
 	// Set defaults if necessary
 	if( $intercept	== null ) $intercept 	= 'simple';
-	if( $int_cust	== null ) $int_cust	= 'none';
+	if( $int_cust	== null ) $int_cust		= 'none';
 	if( $tbl_drop 	== null ) $tbl_drop 	= 'false';
-	if( $expose	== null ) $expose	= 'true';
-//	if( $gpx	== null ) $gfb		= 'none';
-	if( $gpx_chk	== null ) $gpx_chk	= 'false';
-	if( $age	== null ) $age		= '3';
-	if( $mod	== null ) $mod		= 'day';
-	if( $click	== null ) $click	= '50';
-	if( $global	== null ) $global	= 'none';
+	if( $expose		== null ) $expose		= 'true';
+//	if( $gpx		== null ) $gpx			= 'false';
+	if( $gpx_chk	== null ) $gpx_chk		= 'false';
+	if( $age		== null ) $age			= '3';
+	if( $mod		== null ) $mod			= 'day';
+	if( $click		== null ) $click		= '50';
+	if( $global		== null ) $global		= 'none';
 
-	if( 'YOURLS_UNIQUE_URLS' == true) $gpx_chk = 'false';
+	if( YOURLS_UNIQUE_URLS == true) $gpx_chk = 'false';
 
 	return array(
 	$intercept,		// opt[0]
@@ -1547,7 +1546,7 @@ function expiry_cleanup( $args ) {
 	$table = "expiry";
 
 	if (version_compare(YOURLS_VERSION, '1.7.3') >= 0) {
-		$binds = array(	'keyword' => $keyword);
+		$binds = array(	'keyword' => $keyword  );
 		$sql = "DELETE FROM $table WHERE `keyword` = :keyword";
 		$ydb->fetchAffected($sql, $binds);
 	} else {
