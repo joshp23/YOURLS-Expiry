@@ -96,12 +96,11 @@ if ( isset( $_REQUEST['url'] ) && $_REQUEST['url'] != 'http://' ) {
 				<div style="margin:auto;width:150px;text-align:left;" >
 					<div id="tick_tock" style="display:none">
 						<input style="width:50px;" type="number" name="age" id="age" value="" min="0">
-							<select name="mod" id="mod" size="1" >
+							<select name="ageMod" id="ageMod" size="1" >
 								<option value="" selected="selected">Select One</option>
 								<option value="min">Minutes</option>
 								<option value="hour">Hours</option>
 								<option value="day" >Days</option>
-								<option value="week">Weeks</option>
 							</select>
 					</div>
 					<div id="clip_clop" style="display:none">

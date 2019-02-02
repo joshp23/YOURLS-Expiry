@@ -3,7 +3,7 @@
 Plugin Name: Expiry
 Plugin URI: https://github.com/joshp23/YOURLS-Expiry
 Description: Will set expiration conditions on your links (or not)
-Version: 1.5.12
+Version: 2.0.0
 Author: Josh Panter
 Author URI: https://unfettered.net
 */
@@ -53,11 +53,10 @@ function expiry_do_page() {
 		default:      $globalExp['none']  = 'selected'; break;
 	}
 
-	$ageMod = array("min" => " ", "day" => " ", "hour" => " ", "week" => " ");
+	$ageMod = array("min" => " ", "day" => " ", "hour" => " ");
 	switch ($opt[7]) {
 		case 'min':  $ageMod['min']  = 'selected'; break;
 		case 'hour': $ageMod['hour'] = 'selected'; break;
-		case 'week': $ageMod['week'] = 'selected'; break;
 		default:     $ageMod['day']  = 'selected'; break;
 	}
 
@@ -138,7 +137,6 @@ echo <<<HTML
 							<option value="min" {$ageMod['min']}>Minute(s)</option>
 							<option value="hour" {$ageMod['day']}>Hour(s)</option>
 							<option value="day" {$ageMod['hour']}>Day(s)</option>
-							<option value="week" {$ageMod['week']}>Week(s)</option>
 						</select>
 						<p>If the expiry type is set to 'clock' with no other conditions set, expiry falls back to this value.</p>
 					</div>
@@ -284,9 +282,8 @@ echo <<<HTML
 					<p>For a <strong>time</strong> based expiry send:</p>
 					<ul>
 						<li>expiry = "clock"</li>
-						<ul>
-							<li><code>age = NUMERIC_VALUE</code></li>
-							<li><code>mod = (min, hr, day, week)</code></li>
+						<ul> <li><code>age = NUMERIC_VALUE</code></li>
+							<li><code>ageMod = (min, hr, day)</code></li>
 						</ul>
 					</ul>
 					<p>If <code>count</code>, <code>age</code>, and <code>mod</code> values are not set, site default values will be used.</p> 
@@ -368,12 +365,11 @@ echo <<<HTML
 					<td><input type="text" size="5" name="count" id="count" value="" disabled ></td>
 					<td><input type="text" size="3" name="age" id="age" value="" disabled ></td>
 					<td>
-						<select name="mod" id="mod" size="1" disabled >
+						<select name="ageMod" id="ageMod" size="1" disabled >
 							<option value="">Select One</option>
 							<option value="min">Minutes</option>
 							<option value="hour">Hours</option>
 							<option value="day" >Days</option>
-							<option value="week">Weeks</option>
 						</select>
 					</td>
 					<td><input type="text" name="postx" id="postx" size="30" disabled></td>
@@ -436,13 +432,13 @@ echo <<<HTML
 			 if (this.value == "click") {
 					$('#count').prop('disabled', false);
 					$('#age').prop('disabled', true);      
-					$('#mod').prop('disabled', true);      
+					$('#ageMod').prop('disabled', true);      
 					$('#postx').prop('disabled', false);       
 				}
 			 if (this.value == "clock") {
 					$('#count').prop('disabled', true);
 					$('#age').prop('disabled', false);      
-					$('#mod').prop('disabled', false);      
+					$('#ageMod').prop('disabled', false);      
 					$('#postx').prop('disabled', false);       
 				}
 		});
@@ -514,12 +510,11 @@ function expiry_override_html_addnew( $shunt, $url, $keyword ) {
 						<div style="margin:auto;width:150px;text-align:left;" >
 							<div id="tick_tock" style="display:none">
 								<input style="width:50px;" type="number" name="age" id="age" value="" min="0">
-									<select name="mod" id="mod" size="1" >
+									<select name="ageMod" id="ageMod" size="1" >
 										<option value="" selected="selected">Select One</option>
 										<option value="min">Minutes</option>
 										<option value="hour">Hours</option>
 										<option value="day" >Days</option>
-										<option value="week">Weeks</option>
 									</select>
 							</div>
 							<div id="clip_clop" style="display:none">
@@ -905,9 +900,6 @@ function expiry_config() {
 // Adjust human readable time into seconds
 function expiry_age_mod($age, $mod) {
 	switch ($mod) {
-		case 'week': 
-			$age = $age * 7 * 24 * 60 * 60;
-			break;
 		case 'day':
 			$age = $age * 24 * 60 * 60;
 			break;
@@ -1036,9 +1028,9 @@ function expiry_new_link( $return, $url , $keyword, $title ) {
 				return $return;
 			}
 
-			$mod = (isset($_REQUEST['mod']) ? $_REQUEST['mod'] : $opt[7]); 		// ex. "mod=hour"
-			if( !in_array( $mod, array( 'min', 'hour', 'day', 'week' ) ) ) {
-				$return['expiry'] = "'mod' must be 'min', 'day', 'hour', or 'week', no expiry set";
+			$mod = (isset($_REQUEST['ageMod']) ? $_REQUEST['ageMod'] : $opt[7]); 		// ex. "mod=hour"
+			if( !in_array( $mod, array( 'min', 'hour', 'day' ) ) ) {
+				$return['expiry'] = "'ageMod' must be 'min', 'day', or 'hour', no expiry set";
 				return $return;
 			}
 
@@ -1157,12 +1149,12 @@ function expiry_old_link() {
 				);		
 			}
 
-			$mod = (isset($_REQUEST['mod']) ? $_REQUEST['mod'] : $opt[7]); 		// ex. "mod=hour"
-			if( !in_array( $mod, array( 'min', 'hour', 'day', 'week' ) ) ) {
+			$mod = (isset($_REQUEST['ageMod']) ? $_REQUEST['ageMod'] : $opt[7]); 		// ex. "mod=hour"
+			if( !in_array( $mod, array( 'min', 'hour', 'day' ) ) ) {
 				return array(
 					'statusCode' => 400,
-					'simple'     => "'mod' must be set to 'min', 'day', 'hour', or 'week', no expiry set",
-					'message'    => "error: 'mod' must be set to 'min', 'day', 'hour', or 'week'",
+					'simple'     => "'ageMod' must be set to 'min', 'day', or 'hour', no expiry set",
+					'message'    => "error: 'ageMod' must be set to 'min', 'day', or 'hour'",
 				);		
 			}
 

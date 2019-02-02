@@ -7,7 +7,7 @@ function add_link_expiry() {
 	var nonce = $("#nonce-add").val();
 	var expiry = $("#expiry").val();
 	var age = $("#age").val();
-	var mod = $("#mod").val();
+	var ageMod = $("#ageMod").val();
 	var count = $("#count").val();
 	var postx = $("#postx").val();
 	if ( !newurl || newurl == 'http://' || newurl == 'https://' ) {
@@ -17,7 +17,7 @@ function add_link_expiry() {
 	add_loading("#add-button");
 	$.getJSON(
 		ajaxurl,
-		{action:'add', url: newurl, keyword: keyword, expiry: expiry, age: age, mod: mod, count: count, postx: postx, nonce: nonce},
+		{action:'add', url: newurl, keyword: keyword, expiry: expiry, age: age, ageMod: ageMod, count: count, postx: postx, nonce: nonce},
 		function(data){
 			if(data.status == 'success') {
 				$('#main_table tbody').prepend( data.html ).trigger("update");
