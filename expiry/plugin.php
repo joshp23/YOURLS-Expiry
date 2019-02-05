@@ -3,7 +3,7 @@
 Plugin Name: Expiry
 Plugin URI: https://github.com/joshp23/YOURLS-Expiry
 Description: Will set expiration conditions on your links (or not)
-Version: 2.0.2
+Version: 2.0.3
 Author: Josh Panter
 Author URI: https://unfettered.net
 */
@@ -864,7 +864,7 @@ function expiry_config() {
 	$gpx	   = yourls_get_option( 'expiry_global_post_expire' );
 	$gpx_chk   = yourls_get_option( 'expiry_global_post_expire_chk' );
 	$age	   = yourls_get_option( 'expiry_default_age' ); 
-	$mod	   = yourls_get_option( 'expiry_default_age_mod' );
+	$ageMod	   = yourls_get_option( 'expiry_default_age_mod' );
 	$click	   = yourls_get_option( 'expiry_default_click' );
 	$global	   = yourls_get_option( 'expiry_global_expiry' );
 	
@@ -876,7 +876,7 @@ function expiry_config() {
 //	if( $gpx		== null ) $gpx			= 'false';
 	if( $gpx_chk	== null ) $gpx_chk		= 'false';
 	if( $age		== null ) $age			= '3';
-	if( $mod		== null ) $mod			= 'day';
+	if( $ageMod		== null ) $ageMod		= 'day';
 	if( $click		== null ) $click		= '50';
 	if( $global		== null ) $global		= 'none';
 
@@ -890,15 +890,15 @@ function expiry_config() {
 	$gpx,			// opt[4]
 	$gpx_chk,		// opt[5]
 	$age,			// opt[6]
-	$mod,			// opt[7]
+	$ageMod,		// opt[7]
 	$click,			// opt[8]
 	$global			// opt[9]
 	);
 }
 
 // Adjust human readable time into seconds
-function expiry_age_mod($age, $mod) {
-	switch ($mod) {
+function expiry_age_mod($age, $ageMod) {
+	switch ($ageMod) {
 		case 'day':
 			$age = $age * 24 * 60 * 60;
 			break;
@@ -1027,16 +1027,16 @@ function expiry_new_link( $return, $url , $keyword, $title ) {
 				return $return;
 			}
 
-			$mod = (isset($_REQUEST['ageMod']) ? $_REQUEST['ageMod'] : $opt[7]); 		// ex. "ageMod=hour"
-			if( !in_array( $mod, array( 'min', 'hour', 'day' ) ) ) {
+			$ageMod = (isset($_REQUEST['ageMod']) ? $_REQUEST['ageMod'] : $opt[7]); // ex. "ageMod=hour"
+			if( !in_array( $ageMod, array( 'min', 'hour', 'day' ) ) ) {
 				$return['expiry'] = "'ageMod' must be 'min', 'day', or 'hour', no expiry set";
 				return $return;
 			}
 
 			$fresh = time();
-			$stale = expiry_age_mod($age, $mod);
+			$stale = expiry_age_mod($age, $ageMod);
 			$click = 'dummy';
-			$return['expiry'] = "$age $mod expiry set.";
+			$return['expiry'] = "$age $ageMod expiry set.";
 			break;
 		default:
 			return $return;
@@ -1044,7 +1044,7 @@ function expiry_new_link( $return, $url , $keyword, $title ) {
 	}
 
 	$gpx    = $opt[5] == 'false' ? null : $opt[4];
-	$postx  = (isset($_REQUEST['postx']) ? $_REQUEST['postx'] : $gpx); 			// ex. "postx=https://example.com"
+	$postx  = (isset($_REQUEST['postx']) ? $_REQUEST['postx'] : $gpx); 	// ex. "postx=https://example.com"
 	if($postx !== null && $postx !== 'none') {
 		$return['postx'] = $postx;
 		if (!filter_var($postx, FILTER_VALIDATE_URL) ) {
@@ -1139,7 +1139,7 @@ function expiry_old_link() {
 			break;
 
 		case 'clock':									// ex. "expiry=clock"
-			$age = (isset($_REQUEST['age']) ? $_REQUEST['age'] : $opt[6]); 		// ex. "age=3"
+			$age = (isset($_REQUEST['age']) ? $_REQUEST['age'] : $opt[6]);	// ex. "age=3"
 			if( !is_numeric( $age ) ) {
 				return array(
 					'statusCode' => 400,
@@ -1148,8 +1148,8 @@ function expiry_old_link() {
 				);		
 			}
 
-			$mod = (isset($_REQUEST['ageMod']) ? $_REQUEST['ageMod'] : $opt[7]); 		// ex. "ageMod=hour"
-			if( !in_array( $mod, array( 'min', 'hour', 'day' ) ) ) {
+			$ageMod = (isset($_REQUEST['ageMod']) ? $_REQUEST['ageMod'] : $opt[7]);	// ex. "ageMod=hour"
+			if( !in_array( $ageMod, array( 'min', 'hour', 'day' ) ) ) {
 				return array(
 					'statusCode' => 400,
 					'simple'     => "'ageMod' must be set to 'min', 'day', or 'hour', no expiry set",
@@ -1158,9 +1158,9 @@ function expiry_old_link() {
 			}
 
 			$fresh = time();
-			$stale = expiry_age_mod($age, $mod);
+			$stale = expiry_age_mod($age, $ageMod);
 			$click = null;
-			$return['expiry'] = "$age $mod expiry set.";
+			$return['expiry'] = "$age $ageMod expiry set.";
 			$return['expiry_type'] = "clock";
 			$return['expiry_life'] = "$stale"; // in seconds
 			break;
@@ -1174,7 +1174,7 @@ function expiry_old_link() {
 	}
 
 	$gpx    = $opt[5] == 'false' ? null : $opt[4];
-	$postx  = (isset($_REQUEST['postx']) ? $_REQUEST['postx'] : $gpx); 			// ex. "postx=https://example.com"
+	$postx  = (isset($_REQUEST['postx']) ? $_REQUEST['postx'] : $gpx);	// ex. "postx=https://example.com"
 	if($postx !== null && $postx !== 'none') {
 		$return['postx'] = $postx;
 		if (!filter_var($postx, FILTER_VALIDATE_URL) ) {
