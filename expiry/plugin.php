@@ -3,7 +3,7 @@
 Plugin Name: Expiry
 Plugin URI: https://github.com/joshp23/YOURLS-Expiry
 Description: Will set expiration conditions on your links (or not)
-Version: 2.0.1
+Version: 2.0.2
 Author: Josh Panter
 Author URI: https://unfettered.net
 */
@@ -286,7 +286,7 @@ echo <<<HTML
 							<li><code>ageMod = (min, hr, day)</code></li>
 						</ul>
 					</ul>
-					<p>If <code>count</code>, <code>age</code>, and <code>mod</code> values are not set, site default values will be used.</p> 
+					<p>If <code>count</code>, <code>age</code>, and <code>ageMod</code> values are not set, site default values will be used.</p> 
 					<p><strong>Optional</strong>: set a post-expiration fallback URL:</p>
 					<ul>
 						<li><code>postx = URL</code></li>
@@ -1027,7 +1027,7 @@ function expiry_new_link( $return, $url , $keyword, $title ) {
 				return $return;
 			}
 
-			$mod = (isset($_REQUEST['ageMod']) ? $_REQUEST['ageMod'] : $opt[7]); 		// ex. "mod=hour"
+			$mod = (isset($_REQUEST['ageMod']) ? $_REQUEST['ageMod'] : $opt[7]); 		// ex. "ageMod=hour"
 			if( !in_array( $mod, array( 'min', 'hour', 'day' ) ) ) {
 				$return['expiry'] = "'ageMod' must be 'min', 'day', or 'hour', no expiry set";
 				return $return;
@@ -1148,7 +1148,7 @@ function expiry_old_link() {
 				);		
 			}
 
-			$mod = (isset($_REQUEST['ageMod']) ? $_REQUEST['ageMod'] : $opt[7]); 		// ex. "mod=hour"
+			$mod = (isset($_REQUEST['ageMod']) ? $_REQUEST['ageMod'] : $opt[7]); 		// ex. "ageMod=hour"
 			if( !in_array( $mod, array( 'min', 'hour', 'day' ) ) ) {
 				return array(
 					'statusCode' => 400,
@@ -1546,7 +1546,7 @@ function expiry_cleanup( $args ) {
 	$table = "expiry";
 
 	if (version_compare(YOURLS_VERSION, '1.7.3') >= 0) {
-		$binds = array(	'keyword' => $keyword  );
+		$binds = array(	'keyword' => $keyword );
 		$sql = "DELETE FROM $table WHERE `keyword` = :keyword";
 		$ydb->fetchAffected($sql, $binds);
 	} else {
