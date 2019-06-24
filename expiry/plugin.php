@@ -701,7 +701,7 @@ function expiry_flush() {
 					echo '<font color="green">All links are now non-perishable. Have a nice day.</font>';
 					break;
 				case 'killall':
-					echo '<font color="green">All links with expiration dates have been deleted. Have a ncie day.</font>';
+					echo '<font color="green">All links with expiration dates have been deleted. Have a nice day.</font>';
 					break;
 				case 'lazyorblind';
 					echo '<font color="red">You submitted the form without selecting an option... try again.</font>';
