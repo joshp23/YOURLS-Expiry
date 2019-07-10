@@ -347,7 +347,7 @@ echo <<<HTML
 					<th>Clicks</th>
 					<th>Timer</th>
 					<th>Time Unit</th>
-					<th>PostX Destiantion (optional)</th>
+					<th>PostX Destination (optional)</th>
 
 					<th>&nbsp;</th>
 				</tr>
