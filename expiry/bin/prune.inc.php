@@ -7,6 +7,8 @@
 if( isset ( $_SERVER['HTTP_HOST'] ) )
 	die( "Access denied" );
 
+define('EXPIRY_CONSOLE_MODE', true);
+
 // load yourls
 require_once( dirname( __FILE__ ) . '/../../../../includes/load-yourls.php' );
 

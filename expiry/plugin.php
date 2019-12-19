@@ -808,7 +808,7 @@ function expiry_router($keyword, $result, $postx) {
 			$args[0] = $keyword;
 			expiry_cleanup( $args );
 
-			if ( !yourls_is_API() ) {
+			if ( !yourls_is_API() && !defined('EXPIRY_CONSOLE_MODE')) {
 				yourls_redirect($postx, 302);
 				die();
 			}
@@ -822,7 +822,7 @@ function expiry_router($keyword, $result, $postx) {
 	
 		yourls_delete_link_by_keyword( $keyword );
 		
-		if ( !yourls_is_API() ) {
+		if ( !yourls_is_API() && !defined('EXPIRY_CONSOLE_MODE')) {
 		
 			$expiry_intercept = yourls_get_option( 'expiry_intercept' );
 			
