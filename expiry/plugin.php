@@ -3,7 +3,7 @@
 Plugin Name: Expiry
 Plugin URI: https://github.com/joshp23/YOURLS-Expiry
 Description: Will set expiration conditions on your links (or not)
-Version: 2.0.3
+Version: 2.0.4
 Author: Josh Panter
 Author URI: https://unfettered.net
 */
@@ -1452,26 +1452,6 @@ function expiry_db_flush( $type ) {
 	global $ydb;
 	$table = 'expiry';
 	switch ( $type ) {
-		// get rid of expired links that have not been triggered
-		case 'expired':
-			if (version_compare(YOURLS_VERSION, '1.7.3') >= 0) {
-				$sql = "SELECT * FROM `$table` ORDER BY timestamp DESC";
-				$expiry_list = $ydb->fetchObjects($sql);
-			} else {
-				$expiry_list = $ydb->get_results("SELECT * FROM `$table` ORDER BY timestamp DESC");
-			}
-			
-			if($expiry_list) {
-				foreach( $expiry_list as $expiry ) {		
-					$keyword = $expiry->keyword;
-					$args = array("prune", $keyword);
-					expiry_check($args);
-				}
-			}
-
-			$result = true;
-			break;
-			
 		// remove expiry data from all links & preserve the short url	
 		case 'scrub':
 			$init_1 = yourls_get_option('expiry_init');
@@ -1512,7 +1492,9 @@ function expiry_db_flush( $type ) {
 
 			$result = true;	
 			break;
-		default: 	// expired
+		
+		case 'expired': // get rid of expired links that have not been triggered
+		default:
 
 			if (version_compare(YOURLS_VERSION, '1.7.3') >= 0) {
 				$sql = "SELECT * FROM `$table` ORDER BY timestamp DESC";
@@ -1522,7 +1504,7 @@ function expiry_db_flush( $type ) {
 			}
 			
 			if($expiry_list) {
-				foreach( $expiry_list as $expiry ) {		
+				foreach( $expiry_list as $expiry ) {
 					$keyword = $expiry->keyword;
 					$args = array("prune", $keyword);
 					expiry_check($args);
