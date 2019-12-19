@@ -33,6 +33,7 @@ The databse ought to create itself, if not, there is an sql file in the `expiry/
    - via expiry page (old url)
       - directly or by way of admin area action link button
 
+---
 ##### CLI:
 To use the cli prune options, execute the `/PATH/TO/YOURLS/user/plugins/expiry/bin/prune.inc.php` script with the appropriate permissions. This script requires a valid yourls signature, and accepts a `scope` option which can be any of the following:
 
@@ -48,6 +49,9 @@ example use:
 ```
 $ php /PATH/TO/YOURLS/user/plugins/expiry/bin/prune.inc.php --signature=blah0blah1 --scope=expired
 ```
+Look to the first lines in prune.inc.php to adjust php memory and timeout limits for larger databases or Docker installations with limited memory. Disabled by default.
+
+---
 ###### Note: 
  Uses code adapted from the [Change Error Msgs](https://github.com/adigitalife/yourls-change-error-messages) plugin.
 

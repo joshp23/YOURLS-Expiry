@@ -1,4 +1,8 @@
 <?php
+// XXX Uncomment these lines if you run into memory limit failures
+// ini_set('max_execution_time', 3000);
+// ini_set('memory_limit','512M');
+
 // Deny http access
 if( isset ( $_SERVER['HTTP_HOST'] ) )
 	die( "Access denied" );
@@ -24,10 +28,6 @@ if ( array_key_exists( 'scope', $options ) )
 	$scope = $options['scope'];
 else
 	$scope = 'expired';
-
-// XXX Uncomment these lines if you run into memory limit failures
-// ini_set('max_execution_time', 3000);
-// ini_set('memory_limit','512M');
 
 switch( $scope ) {
 
