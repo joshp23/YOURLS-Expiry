@@ -3,7 +3,7 @@
 Plugin Name: Expiry
 Plugin URI: https://github.com/joshp23/YOURLS-Expiry
 Description: Will set expiration conditions on your links (or not)
-Version: 2.0.4
+Version: 2.1.0
 Author: Josh Panter
 Author URI: https://unfettered.net
 */
@@ -1536,4 +1536,15 @@ function expiry_cleanup( $args ) {
 	}
 
 
+}
+
+function expiry_prune_inc_auth( $var ) {
+	// Check signature against all possible users
+	global $yourls_user_passwords;
+	foreach( $yourls_user_passwords as $valid_user => $valid_password )
+		if ( yourls_auth_signature( $valid_user ) === $var ) {
+			yourls_set_user( $valid_user );
+			return true;
+		}
+	return false;
 }

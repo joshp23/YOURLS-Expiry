@@ -26,12 +26,28 @@ The databse ought to create itself, if not, there is an sql file in the `expiry/
    - manage database with a cron call (pre-formatted example provided)
       - prune expired links that haven't been visited in a while, etc.
    - get precise individual url expiry info
+- cli interface for pruning
 - add expiry data in various ways
    - via public interface (new url)
    - via regular admin new url form (new url)
    - via expiry page (old url)
       - directly or by way of admin area action link button
 
+##### CLI:
+To use the cli prune options, execute the `/PATH/TO/YOURLS/user/plugins/expiry/bin/prune.inc.php` script with the appropriate permissions. This script requires a valid yourls signature, and accepts a `scope` option which can be any of the following:
+
+|option	|function|
+|--|--|
+|`expired`	| will prune off any expired links. __default__|
+|`scrub`	| will remove expiry data from any links|
+|`killall`| will early expire _any_ links with expiry data set|
+
+These options are the same as the api options.
+
+example use:
+```
+$ php /PATH/TO/YOURLS/user/plugins/expiry/bin/prune.inc.php --signature=blah0blah1 --scope=expired
+```
 ###### Note: 
  Uses code adapted from the [Change Error Msgs](https://github.com/adigitalife/yourls-change-error-messages) plugin.
 
