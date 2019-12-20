@@ -3,7 +3,7 @@
 Plugin Name: Expiry
 Plugin URI: https://github.com/joshp23/YOURLS-Expiry
 Description: Will set expiration conditions on your links (or not)
-Version: 2.1.0
+Version: 2.1.1
 Author: Josh Panter
 Author URI: https://unfettered.net
 */
@@ -808,7 +808,7 @@ function expiry_router($keyword, $result, $postx) {
 			$args[0] = $keyword;
 			expiry_cleanup( $args );
 
-			if ( !yourls_is_API() && !defined('EXPIRY_CONSOLE_MODE')) {
+			if ( !yourls_is_API() && !defined('EXPIRY_CLI')) {
 				yourls_redirect($postx, 302);
 				die();
 			}
@@ -822,7 +822,7 @@ function expiry_router($keyword, $result, $postx) {
 	
 		yourls_delete_link_by_keyword( $keyword );
 		
-		if ( !yourls_is_API() && !defined('EXPIRY_CONSOLE_MODE')) {
+		if ( !yourls_is_API() && !defined('EXPIRY_CLI')) {
 		
 			$expiry_intercept = yourls_get_option( 'expiry_intercept' );
 			

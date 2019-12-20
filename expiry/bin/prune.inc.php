@@ -1,13 +1,12 @@
 <?php
 // XXX Uncomment these lines if you run into memory limit failures
-// ini_set('max_execution_time', 3000);
 // ini_set('memory_limit','512M');
 
 // Deny http access
 if( isset ( $_SERVER['HTTP_HOST'] ) )
 	die( "Access denied" );
 
-define('EXPIRY_CONSOLE_MODE', true);
+define('EXPIRY_CLI', true);
 
 // load yourls
 require_once( dirname( __FILE__ ) . '/../../../../includes/load-yourls.php' );
