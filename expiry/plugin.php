@@ -1498,7 +1498,7 @@ function expiry_db_flush( $type ) {
 
 			$time = time();
 			$sql = "SELECT exp.* FROM $table exp
-						INNER JOIN yourls_url yu ON yu.keyword = exp.keyword
+					INNER JOIN yourls_url yu ON yu.keyword = exp.keyword
 					WHERE (exp.type = 'clock' AND (exp.timestamp + exp.shelflife) < $time)
 						OR (exp.type = 'click' AND yu.clicks >= exp.click)
 					LIMIT " . EXPIRY_MAX_PRUNE_LINKS_COUNT;
