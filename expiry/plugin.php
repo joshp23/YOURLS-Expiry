@@ -1496,11 +1496,16 @@ function expiry_db_flush( $type ) {
 		case 'expired': // get rid of expired links that have not been triggered
 		default:
 
+			$time = time();
+			$sql = "SELECT * FROM $table exp
+						INNER JOIN yourls_url yu ON yu.keyword = exp.keyword
+					WHERE (exp.type = 'clock' AND (exp.timestamp + exp.shelflife) < $time)
+						OR (exp.type = 'click' AND yu.clicks >= exp.click)
+					LIMIT " . EXPIRY_MAX_PRUNE_LINKS_COUNT;
 			if (version_compare(YOURLS_VERSION, '1.7.3') >= 0) {
-				$sql = "SELECT * FROM `$table` ORDER BY timestamp DESC";
 				$expiry_list = $ydb->fetchObjects($sql);
 			} else {
-				$expiry_list = $ydb->get_results("SELECT * FROM `$table` ORDER BY timestamp DESC");
+				$expiry_list = $ydb->get_results($sql);
 			}
 			
 			if($expiry_list) {
