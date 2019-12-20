@@ -1510,14 +1510,6 @@ function expiry_db_flush( $type ) {
 					expiry_check($args);
 				}
 			}
-			
-			if($expiry_list) {
-				foreach( $expiry_list as $expiry ) {
-					$keyword = $expiry->keyword;
-					$args = array("prune", $keyword);
-					expiry_check($args);
-				}
-			}
 
 			$result = true;
 			break;
