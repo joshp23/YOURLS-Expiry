@@ -7,7 +7,7 @@ if( isset ( $_SERVER['HTTP_HOST'] ) )
 	die( "Access denied" );
 
 define('EXPIRY_CLI', true);
-define('EXPIRY_MAX_PRUNE_LINKS_COUNT', 30000); //max prune links depends on memory_limit
+define('EXPIRY_MAX_PRUNE_LINKS_COUNT', 50000); //max prune links depends on memory_limit
 
 // load yourls
 require_once( dirname( __FILE__ ) . '/../../../../includes/load-yourls.php' );
