@@ -1553,7 +1553,7 @@ function expiry_db_flush( $type ) {
 			
 			if($expiry_list) {
 				foreach( $expiry_list as $expiry ) {
-                    expiry_check_without_query("prune", $expiry, $opt);
+					expiry_check_without_query("prune", $expiry, $opt);
 				}
 			}
 
