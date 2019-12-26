@@ -799,46 +799,44 @@ function expiry_check( $args ) {
 }
 
 function expiry_check_without_query( $type, $expiry, $opt ) {
-    if( $expiry ) {
+	if( $expiry ) {
 
-        $result = false;
+		$result = false;
 
-        if( $expiry['type'] == 'click' ) {
-            $count 	= $expiry['click'];
+		if( $expiry['type'] == 'click' ) {
+			$count 	= $expiry['click'];
 			$result = 'click-bomb';
-            $clicks = $expiry['clicks'];
-            $life = $count - $clicks;
-        }
-        elseif( $expiry['type'] == 'clock' ) {
-            $fresh  = $expiry['timestamp'];
-            $stale  = $expiry['shelflife'];
-            $result = 'time-bomb';
-            $death  = ($stale - (time() - $fresh));
-            $life = expiry_age_mod_reverse($death);
-        }
+			$clicks = $expiry['clicks'];
+			$life = $count - $clicks;
+		} elseif( $expiry['type'] == 'clock' ) {
+			$fresh  = $expiry['timestamp'];
+			$stale  = $expiry['shelflife'];
+			$result = 'time-bomb';
+			$death  = ($stale - (time() - $fresh));
+			$life = expiry_age_mod_reverse($death);
+		}
 
-        //$opt = expiry_config();
-        $gpx = $opt[5] == 'false' ? null : $opt[4];
-        $postx  = (isset($expiry['postexpire']) ? $expiry['postexpire'] : $gpx);
+		$gpx = $opt[5] == 'false' ? null : $opt[4];
+		$postx  = (isset($expiry['postexpire']) ? $expiry['postexpire'] : $gpx);
 
-        if( $type == "expiry_infos" ) {
+		if( $type == "expiry_infos" ) {
 
-            return array (
-                $result,
-                $expiry['type'],
-                $life,
-                $postx
-            );
-        }
+			return array (
+				$result,
+				$expiry['type'],
+				$life,
+				$postx
+			);
+		}
 
-        if($result !== false) {
-            expiry_router($expiry['keyword'], $result, $postx);
-        }
-    } else {
-        if( $type == "expiry_infos") {
-            return array(false, 'none');
-        }
-    }
+		if($result !== false) {
+			expiry_router($expiry['keyword'], $result, $postx);
+		}
+	} else {
+		if( $type == "expiry_infos") {
+			return array(false, 'none');
+		}
+	}
 }
 
 // expiry check ~ router
