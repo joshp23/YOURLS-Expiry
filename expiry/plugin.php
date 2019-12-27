@@ -798,47 +798,6 @@ function expiry_check( $args ) {
 	}
 }
 
-function expiry_check_without_query( $type, $expiry, $opt ) {
-	if( $expiry ) {
-
-		$result = false;
-
-		if( $expiry['type'] == 'click' ) {
-			$count 	= $expiry['click'];
-			$result = 'click-bomb';
-			$clicks = $expiry['clicks'];
-			$life = $count - $clicks;
-		} elseif( $expiry['type'] == 'clock' ) {
-			$fresh  = $expiry['timestamp'];
-			$stale  = $expiry['shelflife'];
-			$result = 'time-bomb';
-			$death  = ($stale - (time() - $fresh));
-			$life = expiry_age_mod_reverse($death);
-		}
-
-		$gpx = $opt[5] == 'false' ? null : $opt[4];
-		$postx  = (isset($expiry['postexpire']) ? $expiry['postexpire'] : $gpx);
-
-		if( $type == "expiry_infos" ) {
-
-			return array (
-				$result,
-				$expiry['type'],
-				$life,
-				$postx
-			);
-		}
-
-		if($result !== false) {
-			expiry_router($expiry['keyword'], $result, $postx);
-		}
-	} else {
-		if( $type == "expiry_infos") {
-			return array(false, 'none');
-		}
-	}
-}
-
 // expiry check ~ router
 function expiry_router($keyword, $result, $postx) {
 	// try to edit maybe
@@ -1536,7 +1495,6 @@ function expiry_db_flush( $type ) {
 		
 		case 'expired': // get rid of expired links that have not been triggered
 		default:
-			$opt = expiry_config();
 			$time = time();
 			$sql = "SELECT exp.*, yu.clicks FROM $table exp
 					INNER JOIN yourls_url yu ON yu.keyword = exp.keyword
@@ -1551,7 +1509,9 @@ function expiry_db_flush( $type ) {
 			
 			if($expiry_list) {
 				foreach( $expiry_list as $expiry ) {
-					expiry_check_without_query("prune", $expiry, $opt);
+					$keyword = $expiry->keyword;
+					$args = array("prune", $keyword);
+					expiry_check($args);
 				}
 			}
 
