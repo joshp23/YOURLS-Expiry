@@ -1490,31 +1490,50 @@ function expiry_db_flush( $type ) {
 				}
 			}
 
-			$result = true;	
+			$result = true;
 			break;
-		
+
 		case 'expired': // get rid of expired links that have not been triggered
 		default:
 			$time = time();
-			$sql = "SELECT exp.*, yu.clicks FROM $table exp
+			$limit = 10000;
+
+			$countQuery = "SELECT count(1) as c FROM $table exp
 					INNER JOIN yourls_url yu ON yu.keyword = exp.keyword
 					WHERE (exp.type = 'clock' AND (exp.timestamp + exp.shelflife) < $time)
-						OR (exp.type = 'click' AND yu.clicks >= exp.click)
-					LIMIT 50000";
+						OR (exp.type = 'click' AND yu.clicks >= exp.click)";
+
 			if (version_compare(YOURLS_VERSION, '1.7.3') >= 0) {
-				$expiry_list = $ydb->fetchObjects($sql);
+				$countObject = $ydb->fetchObjects($countQuery);
 			} else {
-				$expiry_list = $ydb->get_results($sql);
-			}
-			
-			if($expiry_list) {
-				foreach( $expiry_list as $expiry ) {
-					$keyword = $expiry->keyword;
-					$args = array("prune", $keyword);
-					expiry_check($args);
-				}
+				$countObject = $ydb->get_results($countQuery);
 			}
 
+			$allRowNum = empty($countObject[0]->c) ? 0 : $countObject[0]->c;
+			$iterations = ceil($allRowNum / $limit);
+
+			while ($iterations > 0) {
+				$iterations = $iterations - 1;
+
+				$sql = "SELECT exp.*, yu.clicks FROM $table exp
+						INNER JOIN yourls_url yu ON yu.keyword = exp.keyword
+						WHERE (exp.type = 'clock' AND (exp.timestamp + exp.shelflife) < $time)
+							OR (exp.type = 'click' AND yu.clicks >= exp.click)
+						LIMIT $limit";
+				if (version_compare(YOURLS_VERSION, '1.7.3') >= 0) {
+					$expiry_list = $ydb->fetchObjects($sql);
+				} else {
+					$expiry_list = $ydb->get_results($sql);
+				}
+
+				if($expiry_list) {
+					foreach( $expiry_list as $expiry ) {
+						$keyword = $expiry->keyword;
+						$args = array("prune", $keyword);
+						expiry_check($args);
+					}
+				}
+			}
 			$result = true;
 			break;
 	}
