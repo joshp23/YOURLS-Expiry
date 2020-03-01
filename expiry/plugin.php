@@ -3,7 +3,7 @@
 Plugin Name: Expiry
 Plugin URI: https://github.com/joshp23/YOURLS-Expiry
 Description: Will set expiration conditions on your links (or not)
-Version: 2.1.0
+Version: 2.1.1
 Author: Josh Panter
 Author URI: https://unfettered.net
 */
@@ -135,8 +135,8 @@ echo <<<HTML
 	  					<input type="number" name="expiry_default_age" min="1" max="100" value=$opt[6]>
 						<select name="expiry_default_age_mod" >
 							<option value="min" {$ageMod['min']}>Minute(s)</option>
-							<option value="hour" {$ageMod['day']}>Hour(s)</option>
-							<option value="day" {$ageMod['hour']}>Day(s)</option>
+							<option value="hour" {$ageMod['hour']}>Hour(s)</option>
+							<option value="day" {$ageMod['day']}>Day(s)</option>
 						</select>
 						<p>If the expiry type is set to 'clock' with no other conditions set, expiry falls back to this value.</p>
 					</div>
