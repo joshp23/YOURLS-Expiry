@@ -3,7 +3,7 @@
 Plugin Name: Expiry
 Plugin URI: https://github.com/joshp23/YOURLS-Expiry
 Description: Will set expiration conditions on your links (or not)
-Version: 2.1.2
+Version: 2.1.3
 Author: Josh Panter
 Author URI: https://unfettered.net
 */
@@ -488,6 +488,40 @@ function expiry_stats_admin($start) {
 // Change Admin page New URL submission form
 yourls_add_filter( 'shunt_html_addnew', 'expiry_override_html_addnew' );
 function expiry_override_html_addnew( $shunt, $url, $keyword ) {
+
+	$opt = expiry_config();
+	$e_p = $c_c = $t_t = 'none';
+	$gn = $gt = $gc = $aV = $aMn = $aMh = $aMm = $aMd = $cV = NULL;
+
+	switch ( $opt[9] ) {
+
+		case 'click':
+			$e_p = $c_c = 'style';
+			$gc = 'selected="selected"';
+			$cV = $opt[8];
+			break;
+
+		case 'clock':
+			$e_p = $t_t = 'style';
+			$gt = 'selected="selected"';
+			$aV = $opt[6];
+
+			switch ( $opt[7] ) {
+				case 'min':
+					$aMm = 'selected="selected"';
+					break;
+				case 'hour':
+					$aMh = 'selected="selected"';
+					break;
+				default:
+					$aMd = 'selected="selected"';
+			}
+
+			break;
+		default:
+			$gn = $aMn = 'selected="selected"';
+	}
+
 	?>
 	<main role="main">
 	<div id="new_url">
@@ -502,23 +536,23 @@ function expiry_override_html_addnew( $shunt, $url, $keyword ) {
 					</br></br>
 					<label for="expiry"><strong>Short Link Expiration Type</strong>:</label>
 					<select name="expiry" id="expiry" data-role="slider" > Select One
-						<option value="" selected="selected">None</option>
-						<option value="clock">Timer</option>
-						<option value="click" >Click Counter</option>
+						<option value="" 		<?php echo $gn; ?> >None</option>
+						<option value="clock" 	<?php echo $gt; ?> >Timer</option>
+						<option value="click" 	<?php echo $gc; ?> >Click Counter</option>
 					</select>
-					<div id="expiry_params" style="padding-left: 10pt;border-left:1px solid blue;border-bottom:1px solid blue;display:none;">
+					<div id="expiry_params" style="padding-left: 10pt;border-left:1px solid blue;border-bottom:1px solid blue; display:<?php echo $e_p; ?>;">
 						<div style="margin:auto;width:150px;text-align:left;" >
-							<div id="tick_tock" style="display:none">
-								<input style="width:50px;" type="number" name="age" id="age" value="" min="0">
+							<div id="tick_tock" style="display:<?php echo $t_t; ?>">
+								<input style="width:50px;" type="number" name="age" id="age" value="<?php echo $aV; ?>" min="0">
 									<select name="ageMod" id="ageMod" size="1" >
-										<option value="" selected="selected">Select One</option>
-										<option value="min">Minutes</option>
-										<option value="hour">Hours</option>
-										<option value="day" >Days</option>
+										<option value="" 	<?php echo $aMn; ?> >Select One</option>
+										<option value="min" <?php echo $aMm; ?> >Minutes</option>
+										<option value="hour"<?php echo $aMh; ?> >Hours</option>
+										<option value="day" <?php echo $aMd; ?> >Days</option>
 									</select>
 							</div>
-							<div id="clip_clop" style="display:none">
-								<input  style="width:50px;" type="number" name="count" id="count" min="0" > Click limit.
+							<div id="clip_clop" style="display:<?php echo $c_c; ?>">
+								<input  style="width:50px;" type="number" name="count" id="count" value="<?php echo $cV; ?>" min="0" > Click limit.
 							</div>
 						</div>
 						<input type="text" id="postx" name="postx" class="text" size="40" placeholder="leave blank for none"/> <strong>Fallback URL</strong>
