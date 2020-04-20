@@ -6,4 +6,4 @@ CREATE TABLE IF NOT EXISTS `expiry` (
   `shelflife` varchar(20),
   `postexpire` varchar(200),
   PRIMARY KEY  (`keyword`)
-) ENGINE=MyISAM DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
