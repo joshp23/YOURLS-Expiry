@@ -682,7 +682,7 @@ function expiry_list_mgr($n) {
 		if( $_GET['action'] == 'remove') {
 			if( isset($_GET['key']) ) {
 				$key = $_GET['key'];
-				$table = YOURLS_DB_PREFIX.'expiry';
+				$table = YOURLS_DB_PREFIX . 'expiry';
 				if (version_compare(YOURLS_VERSION, '1.7.3') >= 0) {
 					$binds = array('key' => $key);
 					$sql = "DELETE FROM `$table` WHERE `keyword` = :key";
