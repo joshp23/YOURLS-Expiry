@@ -381,7 +381,7 @@ echo <<<HTML
 HTML;
 	// populate table rows with expiry data if there is any
 
-	$table = YOURLS_DB_PREFIX.'expiry';
+	$table = YOURLS_DB_PREFIX . 'expiry';
 	if (version_compare(YOURLS_VERSION, '1.7.3') >= 0) {
 		$sql = "SELECT * FROM `$table` ORDER BY timestamp DESC";
 		$expiry_list = $ydb->fetchObjects($sql);
