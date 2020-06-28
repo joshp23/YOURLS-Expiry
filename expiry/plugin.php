@@ -588,7 +588,7 @@ function show_expiry_tablerow($row, $keyword, $url, $title, $ip, $clicks, $times
 	if($expiry_expose !== "false") {
 
 		// If the keyword is set to expire, make the URL show in green;
-		$table = YOURLS_DB_PREFIX.'expiry';
+		$table = YOURLS_DB_PREFIX . 'expiry';
 
 		if (version_compare(YOURLS_VERSION, '1.7.3') >= 0) {
 			$sql = "SELECT * FROM $table WHERE BINARY `keyword` = :keyword";
