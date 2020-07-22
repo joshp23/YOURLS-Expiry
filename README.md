@@ -9,7 +9,7 @@ As any YOURLS plugin:
 -  Enable in admin area
 ##### Notes:
 - The databse ought to create itself, if not, there is an sql file in the `expiry/assets` folder, make sure to add your database prefix where necessary.
-- If upgrading from 2.1.x of this plugin to 2.2.x, set `define( 'EXPIRY_DB_UPDATE', false );` to `true` at the top of the plugin __for one page load__ in order to update the database, otherwise this plugin will not work.
+- If upgrading from 2.1.x of this plugin to 2.2.x, set `define( 'EXPIRY_DB_UPDATE', true );` in `config.php` __for one page load__ in order to update the database, otherwise this plugin will not work. 
 ##### What's Working:
 -  add per-link and/or global time based or click count limited links
 -  update links already in database to have expiration conditions

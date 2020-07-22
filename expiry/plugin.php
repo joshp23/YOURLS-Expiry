@@ -3,11 +3,10 @@
 Plugin Name: Expiry
 Plugin URI: https://github.com/joshp23/YOURLS-Expiry
 Description: Will set expiration conditions on your links (or not)
-Version: 2.2.0
+Version: 2.2.1
 Author: Josh Panter
 Author URI: https://unfettered.net
 */
-define( 'EXPIRY_DB_UPDATE', false );
 // No direct call
 if( !defined( 'YOURLS_ABSPATH' ) ) die();
 /*
@@ -1405,6 +1404,9 @@ function expiry_prune_api() {
  *
 */
 // temporary update DB script
+
+if (!defined( 'EXPIRY_DB_UPDATE' ))
+	define( 'EXPIRY_DB_UPDATE', false );
 if ( EXPIRY_DB_UPDATE ) 
 	yourls_add_action( 'plugins_loaded', 'expiry_update_DB' );
 function expiry_update_DB () {
