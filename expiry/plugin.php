@@ -1444,7 +1444,7 @@ function expiry_activated() {
 		$table_expiry .= "shelflife varchar(20), ";
 		$table_expiry .= "postexpire varchar(200), ";
 		$table_expiry .= "PRIMARY KEY (keyword) ";
-		$table_expiry .= ") ENGINE=MyISAM DEFAULT CHARSET=latin1;";
+		$table_expiry .= ") ENGINE=InnoDB DEFAULT CHARSET=latin1;";
 
 		if (version_compare(YOURLS_VERSION, '1.7.3') >= 0) {
 			$tables = $ydb->fetchAffected($table_expiry);
