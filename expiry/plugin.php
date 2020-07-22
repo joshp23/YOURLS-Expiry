@@ -381,7 +381,7 @@ echo <<<HTML
 HTML;
 	// populate table rows with expiry data if there is any
 
-	$table = 'expiry';
+	$table = YOURLS_DB_PREFIX . 'expiry';
 	if (version_compare(YOURLS_VERSION, '1.7.3') >= 0) {
 		$sql = "SELECT * FROM `$table` ORDER BY timestamp DESC";
 		$expiry_list = $ydb->fetchObjects($sql);
@@ -588,7 +588,7 @@ function show_expiry_tablerow($row, $keyword, $url, $title, $ip, $clicks, $times
 	if($expiry_expose !== "false") {
 
 		// If the keyword is set to expire, make the URL show in green;
-		$table = 'expiry';
+		$table = YOURLS_DB_PREFIX . 'expiry';
 
 		if (version_compare(YOURLS_VERSION, '1.7.3') >= 0) {
 			$sql = "SELECT * FROM $table WHERE BINARY `keyword` = :keyword";
@@ -682,7 +682,7 @@ function expiry_list_mgr($n) {
 		if( $_GET['action'] == 'remove') {
 			if( isset($_GET['key']) ) {
 				$key = $_GET['key'];
-				$table = 'expiry';
+				$table = YOURLS_DB_PREFIX . 'expiry';
 				if (version_compare(YOURLS_VERSION, '1.7.3') >= 0) {
 					$binds = array('key' => $key);
 					$sql = "DELETE FROM `$table` WHERE `keyword` = :key";
@@ -698,7 +698,7 @@ function expiry_list_mgr($n) {
 		if( $_GET['action'] == 'no_postx') {
 			if( isset($_GET['key']) ) {
 				$key = $_GET['key'];
-				$table = 'expiry';
+				$table = YOURLS_DB_PREFIX.'expiry';
 				if (version_compare(YOURLS_VERSION, '1.7.3') >= 0) {
 					$binds = array('key' => $key);
 					$sql = "UPDATE `$table` SET `postexpire` = 'none' WHERE `keyword` = :key";
@@ -763,7 +763,7 @@ function expiry_check( $args ) {
 	global $ydb;
 	
     $keyword = $args[1]; // Keyword for this request
-	$table = 'expiry';
+	$table = YOURLS_DB_PREFIX.'expiry';
 	if (version_compare(YOURLS_VERSION, '1.7.3') >= 0) {
 		$sql = "SELECT * FROM $table WHERE `keyword` = :keyword";
 		$binds = array('keyword' => $keyword);
@@ -1093,7 +1093,7 @@ function expiry_new_link( $return, $url , $keyword, $title ) {
 
 	// All set, put it in the database
 	global $ydb;
-	$table = 'expiry';
+	$table = YOURLS_DB_PREFIX.'expiry';
 	if (version_compare(YOURLS_VERSION, '1.7.3') >= 0) {
 		$binds = array(	'keyword' => $keyword,
 						'type' => $type,
@@ -1230,7 +1230,7 @@ function expiry_old_link() {
 	
 	// All set, put it in the database
 	global $ydb;
-	$table = 'expiry';
+	$table = YOURLS_DB_PREFIX.'expiry';
 	if (version_compare(YOURLS_VERSION, '1.7.3') >= 0) {
 		$binds = array(	'keyword' => $keyword,
 						'type' => $type,
@@ -1436,7 +1436,7 @@ function expiry_activated() {
 		// Create the init value
 		yourls_add_option('expiry_init', time());
 		// Create the expiry table
-		$table_expiry  = "CREATE TABLE IF NOT EXISTS expiry (";
+		$table_expiry  = "CREATE TABLE IF NOT EXISTS ".YOURLS_DB_PREFIX."expiry (";
 		$table_expiry .= "keyword varchar(200) NOT NULL, ";
 		$table_expiry .= "type varchar(5) NOT NULL, ";
 		$table_expiry .= "click varchar(5), ";
@@ -1470,7 +1470,7 @@ function expiry_deactivate() {
 		$init = yourls_get_option('expiry_init');
 		if ($init !== false) {
 			yourls_delete_option('expiry_init');
-			$table = "expiry";
+			$table = YOURLS_DB_PREFIX."expiry";
 			if (version_compare(YOURLS_VERSION, '1.7.3') >= 0) {
 				$sql = "DROP TABLE IF EXISTS $table";
 				$ydb->fetchAffected($sql);
@@ -1484,7 +1484,7 @@ function expiry_deactivate() {
 // DB Flushing
 function expiry_db_flush( $type ) {
 	global $ydb;
-	$table = 'expiry';
+	$table = YOURLS_DB_PREFIX.'expiry';
 	switch ( $type ) {
 		// remove expiry data from all links & preserve the short url	
 		case 'scrub':
@@ -1559,7 +1559,7 @@ function expiry_cleanup( $args ) {
     $keyword = $args[0]; // Keyword to delete
 
 	// Delete the expiry data, no need for it anymore
-	$table = "expiry";
+	$table = YOURLS_DB_PREFIX."expiry";
 
 	if (version_compare(YOURLS_VERSION, '1.7.3') >= 0) {
 		$binds = array(	'keyword' => $keyword );
