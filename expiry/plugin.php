@@ -3,7 +3,7 @@
 Plugin Name: Expiry
 Plugin URI: https://github.com/joshp23/YOURLS-Expiry
 Description: Will set expiration conditions on your links (or not)
-Version: 2.2.1
+Version: 2.2.2
 Author: Josh Panter
 Author URI: https://unfettered.net
 */
@@ -451,7 +451,7 @@ echo <<<HTML
 		var alias = getExpiryCookie('expiry');
 		if (alias != "") {
          document.getElementById('shorturl').value = alias;
-			$(window).unload(function() {
+			$(window).on("unload", function() {
 				document.cookie = 'expiry'+'=; Max-Age=-99999999;';  
 			});
 		}
@@ -1137,8 +1137,8 @@ function expiry_old_link() {
 	switch( $type ) {
 
 		case 'click': 									// ex. "expiry=click"
-			$click = (isset($_REQUEST['count']) ? $_REQUEST['count'] : $opt[8]);	// ex. "count=50"
-			if( !is_numeric( $click ) ){
+			$count = (isset($_REQUEST['count']) ? $_REQUEST['count'] : $opt[8]);	// ex. "count=50"
+			if( !is_numeric( $count ) ){
 				return array(
 					'statusCode' => 400,
 					'simple'     => "'count' must be a valid number, no expiry set",
@@ -1147,9 +1147,9 @@ function expiry_old_link() {
 			}
 
 			$fresh = $stale = null;	
-			$return['expiry'] = "$click click expiry set";
+			$return['expiry'] = "$count click expiry set";
 			$return['expiry_type'] = "click";
-			$return['expiry_life'] = "$click";
+			$return['expiry_life'] = "$count";
 			break;
 
 		case 'clock':									// ex. "expiry=clock"
@@ -1162,7 +1162,7 @@ function expiry_old_link() {
 				);		
 			}
 
-			$ageMod = (isset($_REQUEST['ageMod']) ? $_REQUEST['ageMod'] : $opt[7]);	// ex. "ageMod=hour"
+			$ageMod = (isset($_REQUEST['ageMod']) ? $_REQUEST['ageMod'] : $opt[7]); // ex. "ageMod=hour"
 			if( !in_array( $ageMod, array( 'min', 'hour', 'day' ) ) ) {
 				return array(
 					'statusCode' => 400,
@@ -1171,9 +1171,9 @@ function expiry_old_link() {
 				);		
 			}
 
+			$count = null;
 			$fresh = time();
 			$stale = expiry_age_mod($age, $ageMod);
-			$click = null;
 			$return['expiry'] = "$age $ageMod expiry set.";
 			$return['expiry_type'] = "clock";
 			$return['expiry_life'] = "$stale"; // in seconds
@@ -1211,12 +1211,12 @@ function expiry_old_link() {
 	// All set, put it in the database
 	global $ydb;
 	$table = YOURLS_DB_PREFIX . 'expiry';
-	$binds = array( 'keyword' => $keyword,
-			'type' => $type,
-			'click' => $click,
-			'fresh' => $fresh,
-			'stale' => $stale,
-			'postx' => $postx );
+	$binds = array( 	'keyword' 	=> $keyword,
+				'type'  	=> $type,
+				'click' 	=> $count,
+				'fresh' 	=> $fresh,
+				'stale' 	=> $stale,
+				'postx' 	=> $postx );
 			
 	$sql = "REPLACE INTO $table (keyword, type, click, timestamp, shelflife, postexpire) VALUES (:keyword, :type, :click, :fresh, :stale, :postx)";
 	
