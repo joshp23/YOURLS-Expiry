@@ -1518,7 +1518,7 @@ function expiry_change_error_msg() {
 					}
 				}
 				elseif ( $return['code'] === 'error:url' ){
-					if ($url_exists = yourls_url_exists( $url )){
+					if ($url_exists = yourls_long_url_exists( $url )){
 						$keyword = $url_exists->keyword;
 						$return['status']   = 'success';
 						$return['message']	= 'This URL already has a short link: ' . YOURLS_SITE .'/'. $keyword;
