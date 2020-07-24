@@ -37,25 +37,28 @@ function add_link_expiry() {
 }
 // dealing with the expiry list form
 function setExpiryCookie(name,value) {
-    document.cookie = name + "=" + (value || "");
+    document.cookie = name + "=" + (value || "") + "; SameSite=Strict;";
 }
 // expiry info on admin page
-function expiry_infos(url) {
-	var shorturl = ( url == null ? $( '#copylink' ).val() : url );
+function expiry_infos() {
+	var surl = $( '#copylink' ).val();
+	var shorturl = decodeURIComponent(surl)
 	$.ajax({
 		type: "GET",
 		url: ajaxurl,
 		data:{action:'expiry-stats', shorturl: shorturl},
 		success: function(data) {
 			var smpl = data.simple;
-			var msg = '<div style="padding:4px;border:1px solid #CDCDCD;background:#C7E7FF;clear:both;"><strong>Expiry: </strong>' + smpl + '</div>';
-			$(exp_result).html(msg);
+			var msg = 'Expiry: ' + smpl;
+			document.getElementById('expiry-share').innerHTML = msg;
 		}
 	});
 }
 $(document).ready( function( ){
 	// Share button behavior
 	$( '.button_share' ).click( function( ){
-		expiry_infos( );
-	});			
+		expiry_infos();
+	});
+	var div = document.getElementById('copybox');
+	div.innerHTML += '<span id=expiry-share></span>';
 });
