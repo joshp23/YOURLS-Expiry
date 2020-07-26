@@ -3,7 +3,7 @@
 Plugin Name: Expiry
 Plugin URI: https://github.com/joshp23/YOURLS-Expiry
 Description: Will set expiration conditions on your links (or not)
-Version: 2.3.0
+Version: 2.3.1
 Author: Josh Panter
 Author URI: https://unfettered.net
 */
@@ -602,6 +602,18 @@ function expiry_stats_ajax( ) {
 	$shorturl = $_REQUEST['shorturl'];	
 	$return = expiry_check( array( "expiry_infos" , $shorturl ) );
 	echo json_encode($return);
+}
+// Is authMgrPlus active?
+yourls_add_action( 'plugins_loaded', 'expiry_amp_check' );
+function expiry_amp_check() {
+	if( yourls_is_active_plugin( 'authMgrPlus/plugin.php' ) ) {
+		yourls_add_filter( 'amp_action_capability_map', 'amp_cap_extends');
+	}
+}
+// Maybe extend authMgrPlus capability map to include expiry ajax call 
+function amp_cap_extends( $map ) {
+	$map += ['expiry-stats' => 'ViewStats'];
+	return $map;
 }
 
 yourls_add_filter( 'table_head_start', 'expiry_stats_admin');
