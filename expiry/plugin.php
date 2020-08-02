@@ -3,7 +3,7 @@
 Plugin Name: Expiry
 Plugin URI: https://github.com/joshp23/YOURLS-Expiry
 Description: Will set expiration conditions on your links (or not)
-Version: 2.3.1
+Version: 2.3.2
 Author: Josh Panter
 Author URI: https://unfettered.net
 */
@@ -1293,7 +1293,7 @@ function expiry_activated() {
 		$table_expiry .= "shelflife varchar(20), ";
 		$table_expiry .= "postexpire varchar(200), ";
 		$table_expiry .= "PRIMARY KEY (keyword) ";
-		$table_expiry .= ") ENGINE=MyISAM DEFAULT CHARSET=latin1;";
+		$table_expiry .= ") ENGINE=InnoDB DEFAULT CHARSET=latin1;";
 
 		$tables = $ydb->fetchAffected($table_expiry);
 
