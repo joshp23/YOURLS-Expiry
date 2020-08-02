@@ -3,7 +3,7 @@
 Plugin Name: Expiry
 Plugin URI: https://github.com/joshp23/YOURLS-Expiry
 Description: Will set expiration conditions on your links (or not)
-Version: 2.3.2
+Version: 2.3.3
 Author: Josh Panter
 Author URI: https://unfettered.net
 */
@@ -1249,6 +1249,7 @@ if (!defined( 'EXPIRY_DB_UPDATE' ))
 if ( EXPIRY_DB_UPDATE ) 
 	yourls_add_action( 'plugins_loaded', 'expiry_update_DB' );
 function expiry_update_DB () {
+	yourls_delete_option('expiry_init');
 	global $ydb;
 	$table = 'expiry';
 	if ( YOURLS_DB_PREFIX ) {
@@ -1278,31 +1279,19 @@ yourls_add_action( 'activated_expiry/plugin.php', 'expiry_activated' );
 function expiry_activated() {
 
 	global $ydb;
+	// Create the expiry table
+	$table = YOURLS_DB_PREFIX . 'expiry';
+	$table_expiry  = "CREATE TABLE IF NOT EXISTS `".$table."` (";
+	$table_expiry .= "keyword varchar(200) NOT NULL, ";
+	$table_expiry .= "type varchar(5) NOT NULL, ";
+	$table_expiry .= "click varchar(5), ";
+	$table_expiry .= "timestamp varchar(20), ";
+	$table_expiry .= "shelflife varchar(20), ";
+	$table_expiry .= "postexpire varchar(200), ";
+	$table_expiry .= "PRIMARY KEY (keyword) ";
+	$table_expiry .= ") ENGINE=InnoDB DEFAULT CHARSET=latin1;";
 
-	$init = yourls_get_option('expiry_init');
-	if ($init === false) {
-		// Create the init value
-		yourls_add_option('expiry_init', time());
-		// Create the expiry table
-		$table = YOURLS_DB_PREFIX . 'expiry';
-		$table_expiry  = "CREATE TABLE IF NOT EXISTS `".$table."` (";
-		$table_expiry .= "keyword varchar(200) NOT NULL, ";
-		$table_expiry .= "type varchar(5) NOT NULL, ";
-		$table_expiry .= "click varchar(5), ";
-		$table_expiry .= "timestamp varchar(20), ";
-		$table_expiry .= "shelflife varchar(20), ";
-		$table_expiry .= "postexpire varchar(200), ";
-		$table_expiry .= "PRIMARY KEY (keyword) ";
-		$table_expiry .= ") ENGINE=InnoDB DEFAULT CHARSET=latin1;";
-
-		$tables = $ydb->fetchAffected($table_expiry);
-
-		yourls_update_option('expiry_init', time());
-		$init = yourls_get_option('expiry_init');
-		if ($init === false) {
-			die("Unable to properly enable expiry due an apparent problem with the database.");
-		}
-	}
+	$tables = $ydb->fetchAffected($table_expiry);
 }
 
 // Delete table when plugin is deactivated
@@ -1311,14 +1300,9 @@ function expiry_deactivate() {
 	$expiry_table_drop = yourls_get_option('expiry_table_drop');
 	if ( $expiry_table_drop !== 'false' ) {
 		global $ydb;
-	
-		$init = yourls_get_option('expiry_init');
-		if ($init !== false) {
-			yourls_delete_option('expiry_init');
-			$table = YOURLS_DB_PREFIX . 'expiry';
-			$sql = "DROP TABLE IF EXISTS $table";
-			$ydb->fetchAffected($sql);
-		}
+		$table = YOURLS_DB_PREFIX . 'expiry';
+		$sql = "DROP TABLE IF EXISTS $table";
+		$ydb->fetchAffected($sql);
 	}
 }
 
@@ -1329,19 +1313,8 @@ function expiry_db_flush( $type ) {
 	switch ( $type ) {
 		// remove expiry data from all links & preserve the short url	
 		case 'scrub':
-			$init_1 = yourls_get_option('expiry_init');
-
-			if ($init_1 !== false) {
-				$sql = "TRUNCATE TABLE $table";
-				$ydb->fetchAffected($sql);
-
-				yourls_update_option('expiry_init', time());
-				$init_2 = yourls_get_option('expiry_init');
-				if ($init_2 === false || $init_1 == $init_2) {
-					die("Unable to properly reset the database. Contact your sys admin");
-				}
-			}
-
+			$sql = "TRUNCATE TABLE $table";
+			$ydb->fetchAffected($sql);
 			$result = true;
 			break;
 			
