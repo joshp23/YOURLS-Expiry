@@ -400,7 +400,7 @@ HTML;
 			}
 			if( $type == 'click' ) {
 				$life  = $expiry->click;
-				$stats  = yourls_get_keyword_stats( $kword );
+				$stats  = yourls_get_link_stats( $kword );
 				$link = $stats['link'];
 				$lived = $link['clicks'];
 				$click = $life - $lived;
@@ -736,7 +736,7 @@ function expiry_check( $args ) {
 
 	global $ydb;
 	$keyword = str_replace( YOURLS_SITE . '/' , '', $args[1] ); // accept either 'http://ozh.in/abc' or 'abc'
-	$keyword = yourls_sanitize_keyword( $keyword );
+	$keyword = yourls_sanitize_string( $keyword );
 	$table = YOURLS_DB_PREFIX . 'expiry';
 	$sql = "SELECT * FROM $table WHERE `keyword` = :keyword";
 	$binds = array('keyword' => $keyword);
@@ -749,7 +749,7 @@ function expiry_check( $args ) {
 		if( $expiry['type'] == 'click' ) {
 
 			$count 	= $expiry['click'];
-			$stats  = yourls_get_keyword_stats( $keyword );
+			$stats  = yourls_get_link_stats( $keyword );
 			$link = $stats['link'];
 			$clicks = $link['clicks'];
 			
@@ -1026,7 +1026,7 @@ function expiry_old_link() {
 
 	$keyword = str_replace( YOURLS_SITE . '/' , '', $shorturl ); // accept either 'http://ozh.in/abc' or 'abc'
 
-	$keyword = yourls_sanitize_keyword( $keyword );
+	$keyword = yourls_sanitize_string( $keyword );
 	$url = yourls_get_keyword_longurl( $keyword );
 	$title = yourls_get_keyword_title( $keyword );
 
@@ -1503,7 +1503,7 @@ function expiry_change_error_msg() {
 					}
 				}
 				elseif ( $return['code'] === 'error:url' ){
-					if ($url_exists = yourls_long_url_exists( $url )){
+					if ($url_exists = yourls_url_exists( $url )){
 						$keyword = $url_exists->keyword;
 						$return['status']   = 'success';
 						$return['message']	= 'This URL already has a short link: ' . YOURLS_SITE .'/'. $keyword;
