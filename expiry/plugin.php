@@ -1365,7 +1365,7 @@ function expiry_db_flush( $type ) {
 						expiry_check($args);
 					}
 				}
-            }
+			}
 			$result = true;
 			break;		
 			
