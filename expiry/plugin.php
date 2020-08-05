@@ -3,7 +3,7 @@
 Plugin Name: Expiry
 Plugin URI: https://github.com/joshp23/YOURLS-Expiry
 Description: Will set expiration conditions on your links (or not)
-Version: 2.1.4
+Version: 2.3.4
 Author: Josh Panter
 Author URI: https://unfettered.net
 */
@@ -381,13 +381,9 @@ echo <<<HTML
 HTML;
 	// populate table rows with expiry data if there is any
 
-	$table = 'expiry';
-	if (version_compare(YOURLS_VERSION, '1.7.3') >= 0) {
-		$sql = "SELECT * FROM `$table` ORDER BY timestamp DESC";
-		$expiry_list = $ydb->fetchObjects($sql);
-	} else {
-		$expiry_list = $ydb->get_results("SELECT * FROM `$table` ORDER BY timestamp DESC");
-	}
+	$table = YOURLS_DB_PREFIX . 'expiry';
+	$sql = "SELECT * FROM `$table` ORDER BY timestamp DESC";
+	$expiry_list = $ydb->fetchObjects($sql);
 	if($expiry_list) {
 		foreach( $expiry_list as $expiry ) {
 			$base	= YOURLS_SITE;
@@ -403,7 +399,11 @@ HTML;
 				$death  = expiry_age_mod_reverse($death);
 			}
 			if( $type == 'click' ) {
-				$click  = $expiry->click;
+				$life  = $expiry->click;
+				$stats  = yourls_get_keyword_stats( $kword );
+				$link = $stats['link'];
+				$lived = $link['clicks'];
+				$click = $life - $lived;
 			}
 			
 			$remove = ''. $_SERVER['PHP_SELF'] .'?page=expiry&action=remove&key='. $kword .'';
@@ -455,34 +455,12 @@ echo <<<HTML
 		var alias = getExpiryCookie('expiry');
 		if (alias != "") {
          document.getElementById('shorturl').value = alias;
-			$(window).unload(function() {
+			$(window).on("unload", function() {
 				document.cookie = 'expiry'+'=; Max-Age=-99999999;';  
 			});
 		}
 	</script>
 HTML;
-}
-
-// Add a Expiry Button to the Admin interface
-yourls_add_filter( 'action_links', 'expiry_admin_button' );
-function expiry_admin_button( $action_links, $keyword, $url, $ip, $clicks, $timestamp ) {
-
-	$home = YOURLS_SITE . "/admin/plugins.php?page=expiry#stat_tab_exp_list";
-	$action_links .= '<a href='.$home.' title="Expiry" onclick=setExpiryCookie("expiry","'.$keyword.'"); class="button button_expiry">Add Expiry Data</a>';
-
- 	return $action_links;
-}
-
-// Expiry data in Share box on admin page
-yourls_add_action('yourls_ajax_expiry-stats', 'expiry_stats_ajax');
-function expiry_stats_ajax() {
-	$return = expiry_stats_api();
-	echo json_encode($return);
-}
-yourls_add_filter( 'table_head_start', 'expiry_stats_admin');
-function expiry_stats_admin($start) {
-	$newStart = '<div style="text-align:center; padding-top: 5px;"id="exp_result" class="text-success"></div>'."\n".$start;
-	return $newStart;
 }
 
 // Change Admin page New URL submission form
@@ -577,7 +555,7 @@ function expiry_override_html_addnew( $shunt, $url, $keyword ) {
 	return $shunt = true;
 }
 
-// Mark expiry links on admin page
+// Mark expiry links on admin page FIXME identify freshly added links
 yourls_add_filter( 'table_add_row', 'show_expiry_tablerow' );
 function show_expiry_tablerow($row, $keyword, $url, $title, $ip, $clicks, $timestamp) {
 	
@@ -588,64 +566,69 @@ function show_expiry_tablerow($row, $keyword, $url, $title, $ip, $clicks, $times
 	if($expiry_expose !== "false") {
 
 		// If the keyword is set to expire, make the URL show in green;
-		$table = 'expiry';
+		$table = YOURLS_DB_PREFIX . 'expiry';
 
-		if (version_compare(YOURLS_VERSION, '1.7.3') >= 0) {
-			$sql = "SELECT * FROM $table WHERE BINARY `keyword` = :keyword";
-			$binds = array('keyword' => $keyword);
-			$expiry = $ydb->fetchOne($sql, $binds);
-		} else {
-			$expiry = $ydb->get_row("SELECT * FROM `$table` WHERE `keyword` = '$keyword'");
-		}
+		$sql = "SELECT * FROM $table WHERE BINARY `keyword` = :keyword";
+		$binds = array('keyword' => $keyword);
+		$expiry = $ydb->fetchOne($sql, $binds);
 	
 		if( $expiry ) {
 			$old_key = '/td class="keyword"/';
 			$new_key = 'td class="keyword" style="border-right: 6px solid green;"';
 			$newrow = preg_replace($old_key, $new_key, $row);
 			return $newrow;
-		} else {
-		$newrow = $row;
-		}
+		} else
+			$newrow = $row;
+
 		return $newrow;
-	} else {
-	return $row;
+
+	} else
+		return $row;
+}
+
+// Add a Expiry Button to the Admin interface
+yourls_add_filter( 'action_links', 'expiry_admin_button' );
+function expiry_admin_button( $action_links, $keyword, $url, $ip, $clicks, $timestamp ) {
+
+	$home = YOURLS_SITE . "/admin/plugins.php?page=expiry#stat_tab_exp_list";
+	$action_links .= '<a href='.$home.' title="Expiry" onclick=setExpiryCookie("expiry","'.$keyword.'"); class="button button_expiry">Add Expiry Data</a>';
+
+ 	return $action_links;
+}
+
+// Expiry data in Share box on admin page
+yourls_add_action('yourls_ajax_expiry-stats', 'expiry_stats_ajax');
+function expiry_stats_ajax( ) {
+	$shorturl = $_REQUEST['shorturl'];	
+	$return = expiry_check( array( "expiry_infos" , $shorturl ) );
+	echo json_encode($return);
+}
+// Is authMgrPlus active?
+yourls_add_action( 'plugins_loaded', 'expiry_amp_check' );
+function expiry_amp_check() {
+	if( yourls_is_active_plugin( 'authMgrPlus/plugin.php' ) ) {
+		yourls_add_filter( 'amp_action_capability_map', 'amp_cap_extends');
 	}
 }
+// Maybe extend authMgrPlus capability map to include expiry ajax call 
+function amp_cap_extends( $map ) {
+	$map += ['expiry-stats' => 'ViewStats'];
+	return $map;
+}
+
+yourls_add_filter( 'table_head_start', 'expiry_stats_admin');
+function expiry_stats_admin($start) {
+	$newStart = '<div style="text-align:center; padding-top: 5px;"id="exp_result" class="text-success"></div>'."\n".$start;
+	return $newStart;
+}
+
 // Expiry data for info page stats tab
 yourls_add_action('pre_yourls_info_stats', 'expiry_stats');
 function expiry_stats($keyword) {
-
-	$args = array("expiry_infos", $keyword[0]);
-	$infos = expiry_check( $args);
-
-	if( isset($infos[3])  && $infos[3] !=='' && $infos[3] !== 'none') { 
-		$postx_info = "<br><strong>Note</strong>: This link will redirect to <strong>".$infos[3]."</strong> after expiration.";
-	} else {
-		$postx_info = null;
-	}
-
-	if($infos[0] !== false) {
-				$result = "<strong>Expiry</strong>: " . "This link is a ". $infos[0] .", it is beyond expiration.";
-	} else {
-
-		switch ($infos[1]) {
-			case 'none':
-				$result = "<strong>Expiry</strong>: No expiry data set.";
-				break;
-			case 'click':
-				$result = "<strong>Expiry</strong>: Short URL has <strong>".$infos[2]."</strong> clicks left.";
-				break;
-
-			case 'clock':
-				$result = "<strong>Expiry</strong>: Short URL will expire in <strong>".$infos[2]."</strong> .";
-				break;
-			default:
-				$result = "Not able to retrieve expiry data, please check your configuraiton (call).";
-		}
-	}
-
-	echo $result . $postx_info;
+	$infos = expiry_check( array( "expiry_infos" , $keyword[0] ) );
+	echo "<strong>Expiry</strong>: " . $infos['simple'];
 }
+
 /*
  *
  * 	Form submissions
@@ -682,14 +665,10 @@ function expiry_list_mgr($n) {
 		if( $_GET['action'] == 'remove') {
 			if( isset($_GET['key']) ) {
 				$key = $_GET['key'];
-				$table = 'expiry';
-				if (version_compare(YOURLS_VERSION, '1.7.3') >= 0) {
-					$binds = array('key' => $key);
-					$sql = "DELETE FROM `$table` WHERE `keyword` = :key";
-					$delete = $ydb->fetchAffected($sql, $binds);
-				} else {
-					$delete = $ydb->query("DELETE FROM `$table` WHERE `keyword` = '$key'");
-				}
+				$table = YOURLS_DB_PREFIX . 'expiry';
+				$binds = array('key' => $key);
+				$sql = "DELETE FROM `$table` WHERE `keyword` = :key";
+				$delete = $ydb->fetchAffected($sql, $binds);
 			}
 			// go to list
 			expiry_list($n);
@@ -698,14 +677,10 @@ function expiry_list_mgr($n) {
 		if( $_GET['action'] == 'no_postx') {
 			if( isset($_GET['key']) ) {
 				$key = $_GET['key'];
-				$table = 'expiry';
-				if (version_compare(YOURLS_VERSION, '1.7.3') >= 0) {
-					$binds = array('key' => $key);
-					$sql = "UPDATE `$table` SET `postexpire` = 'none' WHERE `keyword` = :key";
-					$update = $ydb->fetchAffected($sql, $binds);
-				} else {
-					$update = $ydb->query("UPDATE `$table` SET `postexpire` = 'none' WHERE `keyword` = '$key'");
-				}
+				$table = YOURLS_DB_PREFIX . 'expiry';
+				$binds = array('key' => $key);
+				$sql = "UPDATE `$table` SET `postexpire` = 'none' WHERE `keyword` = :key";
+				$update = $ydb->fetchAffected($sql, $binds);
 			}
 			// go to list
 			expiry_list($n);
@@ -757,36 +732,29 @@ function expiry_flush() {
 */
 // Hook on basic redirect
 yourls_add_action( 'redirect_shorturl', 'expiry_check' );
-// expiry check
 function expiry_check( $args ) {
 
 	global $ydb;
-	
-    $keyword = $args[1]; // Keyword for this request
-	$table = 'expiry';
-	if (version_compare(YOURLS_VERSION, '1.7.3') >= 0) {
-		$sql = "SELECT * FROM $table WHERE `keyword` = :keyword";
-		$binds = array('keyword' => $keyword);
-		$expiry = $ydb->fetchOne($sql, $binds);
-	} else {
-		$expiry = $ydb->get_row("SELECT * FROM `$table` WHERE `keyword` = '$keyword'");
-	}
-	if( $expiry ) {
-	
-		$result = false;
+	$keyword = str_replace( YOURLS_SITE . '/' , '', $args[1] ); // accept either 'http://ozh.in/abc' or 'abc'
+	$keyword = yourls_sanitize_keyword( $keyword );
+	$table = YOURLS_DB_PREFIX . 'expiry';
+	$sql = "SELECT * FROM $table WHERE `keyword` = :keyword";
+	$binds = array('keyword' => $keyword);
+	$expiry = $ydb->fetchOne($sql, $binds);
 
+	$result = false;
+
+	if( $expiry ) {
 		$expiry = (array)$expiry;
 		if( $expiry['type'] == 'click' ) {
 
 			$count 	= $expiry['click'];
-
-			$stats  = yourls_get_link_stats( $keyword );
+			$stats  = yourls_get_keyword_stats( $keyword );
 			$link = $stats['link'];
 			$clicks = $link['clicks'];
 			
-			if ( $clicks >= $count ) {
+			if ( $clicks >= $count )
 				$result = 'click-bomb';
-			}
 
 			$life = $count - $clicks;
 		}
@@ -796,40 +764,27 @@ function expiry_check( $args ) {
 			$fresh  = $expiry['timestamp'];
 			$stale  = $expiry['shelflife'];
 
-			if( ( time() - $fresh)  >= $stale ) {
+			if( ( time() - $fresh)  >= $stale )
 				$result = 'time-bomb';	
-			}
 			
 			$death  = ($stale - (time() - $fresh));
 			$life = expiry_age_mod_reverse($death);
-
 		}
 	
 		$opt = expiry_config();
 		$gpx = $opt[5] == 'false' ? null : $opt[4];
 		$postx  = (isset($expiry['postexpire']) ? $expiry['postexpire'] : $gpx);
 
-		if( $args[0] == "expiry_infos" ) {
-
-			return array (
-				$result,
-				$expiry['type'],
-				$life,
-				$postx
-			);
-		}
-
-		if($result !== false) {
-
-			expiry_router($keyword, $result, $postx);
-		}
-
 	} else {
-
-		if( $args[0] == "expiry_infos") {
-			return array(false, 'none');
-		}
+		$expiry['type'] = 'none';
+		$life = $postx = null;
 	}
+	
+	if( $args[0] == "expiry_infos" )
+		return expiry_stats_response (array ( $result, $expiry['type'], $life, $postx ) );
+
+	if($result !== false)
+		expiry_router($keyword, $result, $postx);
 }
 
 // expiry check ~ router
@@ -879,6 +834,571 @@ function expiry_router($keyword, $result, $postx) {
 		}
 	}
 	
+}
+
+// expiry info response
+function expiry_stats_response( $infos ) {
+
+	if( isset($infos[3])  && $infos[3] !=='' && $infos[3] !== 'none') { 
+		$postx_info = "This link will redirect to ".$infos[3]." after expiration.";
+		$postx_data = $infos[3];
+	} else {
+		$postx_info = null;
+		$postx_data = 'none';
+	}
+
+	if($infos[0] !== false) {
+		return array(
+			'statusCode' => 200,
+			'expiry'	 => $infos[1],
+			'postx'		 => $postx_data,
+			'simple'     => "This link is a ". $infos[0] .", it is beyond expiration. ".$postx_info,
+			'message'    => "This link is a ". $infos[0] .", it is beyond expiration. ".$postx_info
+		);
+	} else {
+
+		switch ($infos[1]) {
+			case 'none':
+				return array(
+					'statusCode' => 200,
+					'expiry		'=> 'none',
+					'simple'     => "No expiry data set.",
+					'message'    => "No expiry data set."
+				);
+				break;
+			case 'click':
+				return array(
+					'statusCode' => 200,
+					'expiry'	 => 'click',
+					'countdown'  => $infos[2],
+					'postx'		 => $postx_data,
+					'simple'     => "Short URL has ".$infos[2]." clicks left. ".$postx_info,
+					'message'    => "Short URL has ".$infos[2]." clicks left. ".$postx_info
+				);
+				break;
+
+			case 'clock':
+				return array(
+					'statusCode' => 200,
+					'expiry_type'=> 'clock',
+					'countdown'  => $infos[2],
+					'postx'		 => $postx_data,
+					'simple'     => "Short URL will expire in ".$infos[2]." . ".$postx_info,
+					'message'    => "Short URL will expire in ".$infos[2]." . ".$postx_info
+				);
+				break;
+			default:				
+				return array(
+					'statusCode' => 400,
+					'simple'     => "Not able to retrieve expiry data, please check your configuraiton (call).",
+					'message'    => "Not able to retrieve expiry data, please check your configuraiton (call)."
+				);
+				break;
+		}
+	}
+}
+
+/*
+ *
+ *	API
+ *
+ *
+*/
+// Expire new links
+yourls_add_filter( 'add_new_link', 'expiry_new_link' );
+function expiry_new_link( $return, $url , $keyword, $title ) { 
+
+	// this method tolelrates no error in short url creation
+	if(isset ( $return['code'] ) ) {
+		switch( $return['code'] ) {
+			case 'error:url':
+				$return['expiry'] = 'Error: use "action => expiry" to add expiration data to a pre-esxisting url. No expiry data set';
+				return $return;
+			default:
+				return $return;
+		}
+	}
+
+	$opt = expiry_config();
+
+	$type = isset($_REQUEST['expiry']) ? $_REQUEST['expiry'] : $opt[9];
+
+	switch( $type ) {
+		case 'click': 									// ex. "expiry=click"
+			$click = (isset($_REQUEST['count']) ? $_REQUEST['count'] : $opt[8]);	// ex. "count=50"
+			if( !is_numeric( $click ) ){	
+				$return['expiry'] = "'count' must be a valid number, no expiry set";
+				return $return;
+			}
+
+			$fresh = $stale = 'dummy';	
+			$return['expiry'] = "$click click expiry set";
+			break;
+		case 'clock':									// ex. "expiry=clock"
+			$age = (isset($_REQUEST['age']) ? $_REQUEST['age'] : $opt[6]); 		// ex. "age=3"
+			if( !is_numeric( $age ) ) {
+				$return['expiry'] = "'age' must be a valid number, no expiry set";
+				return $return;
+			}
+
+			$ageMod = (isset($_REQUEST['ageMod']) ? $_REQUEST['ageMod'] : $opt[7]); // ex. "ageMod=hour"
+			if( !in_array( $ageMod, array( 'min', 'hour', 'day' ) ) ) {
+				$return['expiry'] = "'ageMod' must be 'min', 'day', or 'hour', no expiry set";
+				return $return;
+			}
+
+			$fresh = time();
+			$stale = expiry_age_mod($age, $ageMod);
+			$click = 'dummy';
+			$return['expiry'] = "$age $ageMod expiry set.";
+			break;
+		default:
+			return $return;
+		
+	}
+
+	$gpx    = $opt[5] == 'false' ? null : $opt[4];
+	$postx  = (isset($_REQUEST['postx']) ? $_REQUEST['postx'] : $gpx); 	// ex. "postx=https://example.com"
+	if($postx !== null && $postx !== 'none') {
+		$return['postx'] = $postx;
+		if (!filter_var($postx, FILTER_VALIDATE_URL) ) {
+			$return['postx'] = "invalid url, not set";
+			$postx = 'none';
+		}
+		elseif(!yourls_is_allowed_protocol( $postx ) ){
+			$return['postx'] = "disallowed protocol, not set";
+			$postx = 'none';
+		}
+	}
+
+	// All set, put it in the database
+	global $ydb;
+	$table = YOURLS_DB_PREFIX . 'expiry';
+
+	$binds = array( 'keyword' => $keyword,
+			'type' => $type,
+			'click' => $click,
+			'fresh' => $fresh,
+			'stale' => $stale,
+			'postx' => $postx );
+				
+	$sql = "REPLACE INTO $table (keyword, type, click, timestamp, shelflife, postexpire) VALUES (:keyword, :type, :click, :fresh, :stale, :postx)";
+	
+	$insert = $ydb->fetchAffected($sql, $binds);
+		
+
+	return yourls_apply_filter( 'after_expiry_new_link', $return, $url, $keyword, $title );
+}
+
+// Expiry old links
+yourls_add_filter( 'api_action_expiry', 'expiry_old_link' );
+function expiry_old_link() {
+	
+	$auth = yourls_is_valid_user();
+	if( $auth !== true ) {
+		$format = ( isset($_REQUEST['format']) ? $_REQUEST['format'] : 'xml' );
+		$callback = ( isset($_REQUEST['callback']) ? $_REQUEST['callback'] : '' );
+		yourls_api_output( $format, array(
+			'simple' => $auth,
+			'message' => $auth,
+			'errorCode' => 403,
+			'callback' => $callback,
+		) );
+	}
+
+	if( !isset( $_REQUEST['shorturl'] ) ) {
+		return array(
+			'statusCode' => 400,
+			'simple'     => "Need a 'shorturl' parameter",
+			'message'    => 'error: missing shorturl param',
+		);	
+	}
+
+	$shorturl = $_REQUEST['shorturl'];
+
+	if( !yourls_is_shorturl( $shorturl ) ) {
+		return array(
+			'statusCode' => 400,
+			'simple'     => "Not a valid short url",
+			'message'    => 'error: bad url',
+		);	
+	}
+
+	$keyword = str_replace( YOURLS_SITE . '/' , '', $shorturl ); // accept either 'http://ozh.in/abc' or 'abc'
+
+	$keyword = yourls_sanitize_keyword( $keyword );
+	$url = yourls_get_keyword_longurl( $keyword );
+	$title = yourls_get_keyword_title( $keyword );
+
+	$opt = expiry_config();
+
+	$type = isset($_REQUEST['expiry']) ? $_REQUEST['expiry'] : $opt[9];
+
+	switch( $type ) {
+
+		case 'click': 									// ex. "expiry=click"
+			$count = (isset($_REQUEST['count']) ? $_REQUEST['count'] : $opt[8]);	// ex. "count=50"
+			if( !is_numeric( $count ) ){
+				return array(
+					'statusCode' => 400,
+					'simple'     => "'count' must be a valid number, no expiry set",
+					'message'    => "error: 'count' must be a valid number",
+				);		
+			}
+
+			$fresh = $stale = null;	
+			$return['expiry'] = "$count click expiry set";
+			$return['expiry_type'] = "click";
+			$return['expiry_life'] = "$count";
+			break;
+
+		case 'clock':									// ex. "expiry=clock"
+			$age = (isset($_REQUEST['age']) ? $_REQUEST['age'] : $opt[6]);	// ex. "age=3"
+			if( !is_numeric( $age ) ) {
+				return array(
+					'statusCode' => 400,
+					'simple'     => "'age' must be a valid number, no expiry set",
+					'message'    => "error: 'age' must be a valid number",
+				);		
+			}
+
+			$ageMod = (isset($_REQUEST['ageMod']) ? $_REQUEST['ageMod'] : $opt[7]); // ex. "ageMod=hour"
+			if( !in_array( $ageMod, array( 'min', 'hour', 'day' ) ) ) {
+				return array(
+					'statusCode' => 400,
+					'simple'     => "'ageMod' must be set to 'min', 'day', or 'hour', no expiry set",
+					'message'    => "error: 'ageMod' must be set to 'min', 'day', or 'hour'",
+				);		
+			}
+
+			$count = null;
+			$fresh = time();
+			$stale = expiry_age_mod($age, $ageMod);
+			$return['expiry'] = "$age $ageMod expiry set.";
+			$return['expiry_type'] = "clock";
+			$return['expiry_life'] = "$stale"; // in seconds
+			break;
+
+		case 'none':
+			return array(
+				'statusCode' => 400,
+				'simple'     => "'expiry' must be set to 'click' or 'clock', no expiry set",
+				'message'    => "error: 'expiry' must be set to 'click' or 'clock'",
+			);		
+	}
+
+	$gpx    = $opt[5] == 'false' ? null : $opt[4];
+	$postx  = (isset($_REQUEST['postx']) ? $_REQUEST['postx'] : $gpx);	// ex. "postx=https://example.com"
+	if($postx !== null && $postx !== 'none') {
+		$return['postx'] = $postx;
+		if (!filter_var($postx, FILTER_VALIDATE_URL) ) {
+			$return['postx'] = "error: invalid url, not set";
+			$postx = null;
+		}
+		elseif(!yourls_is_allowed_protocol( $postx ) ){
+			$return['postx'] = "error: disallowed protocol, not set";
+			$postx = null;
+		}
+	}
+	$shorturl = YOURLS_SITE . '/' . $keyword;
+	$return['statusCode'] = "200";
+	$return['message'] = "success: expiry set";
+	$return['shorturl'] = $shorturl;
+	$return['url'] = $url;
+	$return['title'] = $title;
+	$return['simple'] = "Success: '$type' expiry set for $shorturl ";
+	
+	// All set, put it in the database
+	global $ydb;
+	$table = YOURLS_DB_PREFIX . 'expiry';
+	$binds = array( 	'keyword' 	=> $keyword,
+				'type'  	=> $type,
+				'click' 	=> $count,
+				'fresh' 	=> $fresh,
+				'stale' 	=> $stale,
+				'postx' 	=> $postx );
+			
+	$sql = "REPLACE INTO $table (keyword, type, click, timestamp, shelflife, postexpire) VALUES (:keyword, :type, :click, :fresh, :stale, :postx)";
+	
+	$insert = $ydb->fetchAffected($sql, $binds);
+
+	return yourls_apply_filter( 'after_expiry_old_link', $return, $url, $keyword, $title );
+}
+// Check Shortlink expiry data
+yourls_add_filter( 'api_action_expiry-stats', 'expiry_stats_api' );
+function expiry_stats_api() {
+
+	if( !isset( $_REQUEST['shorturl'] ) ) {
+		return array(
+			'statusCode' => 400,
+			'simple'     => "Need a 'shorturl' parameter",
+			'message'    => 'error: missing shorturl param',
+		);	
+	}
+
+	$r = $_REQUEST['shorturl'];
+
+	if( !yourls_is_shorturl( $r ) ) {
+		return array(
+			'statusCode' => 400,
+			'simple'     => "Not a valid short url",
+			'message'    => 'error: bad url',
+		);	
+	}
+
+	$return = expiry_check( array( "expiry_infos" , $r ) );
+	return $return;
+}
+
+// Prune away expired links
+yourls_add_filter( 'api_action_prune', 'expiry_prune_api' );
+function expiry_prune_api() {
+
+	$auth = yourls_is_valid_user();
+	if( $auth !== true ) {
+		$format = ( isset($_REQUEST['format']) ? $_REQUEST['format'] : 'xml' );
+		$callback = ( isset($_REQUEST['callback']) ? $_REQUEST['callback'] : '' );
+		yourls_api_output( $format, array(
+			'simple' => $auth,
+			'message' => $auth,
+			'errorCode' => 403,
+			'callback' => $callback,
+		) );
+	}
+
+	// We need a scope for the prune
+	if( !isset( $_REQUEST['scope'] ) ) {
+		return array(
+			'statusCode' => 400,
+			'simple'     => "Need a 'scope' parameter",
+			'message'    => "error: missing 'scope' param",
+		);	
+	}
+	
+	// Scope must be in range
+	if( !in_array( $_REQUEST['scope'], array( 'expired', 'scrub', 'killall' ) ) ) {
+		return array(
+			'statusCode' => 400,
+			'simple'     => "Error: 'scope' must be set to 'expired', 'scrub' or 'killall'",
+			'message'    => "error: bad param value for 'scope'",
+			);
+	}
+
+	$type = $_REQUEST['scope'];
+	switch( $type ) {
+		case 'expired':
+			
+			if( expiry_db_flush( $type ) ) {
+				return array(
+					'statusCode' => 200,
+					'simple'     => "Expired links have been pruned",
+					'message'    => 'success: pruned',
+				);
+			} else {
+				return array(
+					'statusCode' => 500,
+					'simple'     => 'Error: could not prune expiry, not sure why :-/',
+					'message'    => 'error: unknown error',
+				);
+			}
+
+		case 'scrub':
+			
+			if( expiry_db_flush( $type ) ) {
+				return array(
+					'statusCode' => 200,
+					'simple'     => "Expirations have been stripped from all links",
+					'message'    => 'success: pruned',
+				);
+			} else {
+				return array(
+					'statusCode' => 500,
+					'simple'     => 'Error: could not prune expiry, not sure why :-/',
+					'message'    => 'error: unknown error',
+				);
+			}
+
+		case 'killall':
+			
+			if( expiry_db_flush( $type ) ) {
+				return array(
+					'statusCode' => 200,
+					'simple'     => "All perishable links have been pruned",
+					'message'    => 'success: pruned',
+				);
+			} else {
+				return array(
+					'statusCode' => 500,
+					'simple'     => 'Error: could not prune expiry, not sure why :-/',
+					'message'    => 'error: unknown error',
+				);
+			}
+	}
+}
+
+/*
+ *
+ *	Database
+ *
+ *
+*/
+// temporary update DB script
+
+if (!defined( 'EXPIRY_DB_UPDATE' ))
+	define( 'EXPIRY_DB_UPDATE', false );
+if ( EXPIRY_DB_UPDATE ) 
+	yourls_add_action( 'plugins_loaded', 'expiry_update_DB' );
+function expiry_update_DB () {
+	yourls_delete_option('expiry_init');
+	global $ydb;
+	$table = 'expiry';
+	if ( YOURLS_DB_PREFIX ) {
+		try {
+			$sql = "DESCRIBE `".YOURLS_DB_PREFIX . $table."`";
+			$fix = $ydb->fetchAffected($sql);
+		} catch (PDOException $e) {
+			$sql = "RENAME TABLE `".$table."` TO  `".YOURLS_DB_PREFIX.$table."`";
+			$fix = $ydb->fetchAffected($sql);
+		}
+		
+		$table = YOURLS_DB_PREFIX . $table;
+	}
+	
+	try {
+	    	$sql = "SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES
+	    		WHERE TABLE_NAME = `".$table."`
+	    		AND ENGINE = 'INNODB' LIMIT 1";
+	    	$fix = $ydb->fetchAffected($sql);
+    	} catch (PDOException $e) {
+		$sql = "ALTER TABLE `".$table."` ENGINE = INNODB;";
+		$fix = $ydb->fetchAffected($sql);
+	}
+}
+// Create tables for this plugin when activated
+yourls_add_action( 'activated_expiry/plugin.php', 'expiry_activated' );
+function expiry_activated() {
+
+	global $ydb;
+	// Create the expiry table
+	$table = YOURLS_DB_PREFIX . 'expiry';
+	$table_expiry  = "CREATE TABLE IF NOT EXISTS `".$table."` (";
+	$table_expiry .= "keyword varchar(200) NOT NULL, ";
+	$table_expiry .= "type varchar(5) NOT NULL, ";
+	$table_expiry .= "click varchar(5), ";
+	$table_expiry .= "timestamp varchar(20), ";
+	$table_expiry .= "shelflife varchar(20), ";
+	$table_expiry .= "postexpire varchar(200), ";
+	$table_expiry .= "PRIMARY KEY (keyword) ";
+	$table_expiry .= ") ENGINE=InnoDB DEFAULT CHARSET=latin1;";
+
+	$tables = $ydb->fetchAffected($table_expiry);
+}
+
+// Delete table when plugin is deactivated
+yourls_add_action('deactivated_expiry/plugin.php', 'expiry_deactivate');
+function expiry_deactivate() {
+	$expiry_table_drop = yourls_get_option('expiry_table_drop');
+	if ( $expiry_table_drop !== 'false' ) {
+		global $ydb;
+		$table = YOURLS_DB_PREFIX . 'expiry';
+		$sql = "DROP TABLE IF EXISTS $table";
+		$ydb->fetchAffected($sql);
+	}
+}
+
+// DB Flushing
+function expiry_db_flush( $type ) {
+	global $ydb;
+	$table = YOURLS_DB_PREFIX . 'expiry';
+	switch ( $type ) {
+		// remove expiry data from all links & preserve the short url	
+		case 'scrub':
+			$sql = "TRUNCATE TABLE $table";
+			$ydb->fetchAffected($sql);
+			$result = true;
+			break;
+			
+		// delete every short url that is set to expire	
+		case 'killall': // nuke
+			$sql = "SELECT * FROM `$table` ORDER BY timestamp DESC";
+			$expiry_list = $ydb->fetchObjects($sql);
+			if($expiry_list) {
+				foreach( $expiry_list as $expiry ) {
+					$keyword = $expiry->keyword;
+					yourls_delete_link_by_keyword( $keyword );
+				}
+			}
+
+			$result = true;
+			break;
+
+		case 'expired': // get rid of expired links that have not been triggered
+		default:
+
+			$time = time();
+			$limit = 10000;
+
+			$countQuery = "SELECT count(1) as c FROM $table exp
+					INNER JOIN yourls_url yu ON yu.keyword = exp.keyword
+					WHERE (exp.type = 'clock' AND (exp.timestamp + exp.shelflife) < $time)
+						OR (exp.type = 'click' AND yu.clicks >= exp.click)";
+			$countObject = $ydb->fetchObjects($countQuery);
+
+			$allRowNum = empty($countObject[0]->c) ? 0 : $countObject[0]->c;
+			$iterations = ceil($allRowNum / $limit);
+
+            while ($iterations > 0) {
+                $iterations = $iterations - 1;
+
+                $sql = "SELECT exp.*, yu.clicks FROM $table exp
+						INNER JOIN yourls_url yu ON yu.keyword = exp.keyword
+						WHERE (exp.type = 'clock' AND (exp.timestamp + exp.shelflife) < $time)
+							OR (exp.type = 'click' AND yu.clicks >= exp.click)
+						LIMIT $limit";
+
+                $expiry_list = $ydb->fetchObjects($sql);
+
+                if ($expiry_list) {
+                    foreach ($expiry_list as $expiry) {
+                        $keyword = $expiry->keyword;
+                        $args = array("prune", $keyword);
+                        expiry_check($args);
+                    }
+                }
+            }
+			$result = true;
+			break;		
+			
+	}
+
+	return $result;
+}
+// auto-delete expiry records 
+yourls_add_action( 'delete_link', 'expiry_cleanup' );	// cleanup on keyword deletion
+function expiry_cleanup( $args ) {
+	global $ydb;
+
+    	$keyword = $args[0]; // Keyword to delete
+
+	// Delete the expiry data, no need for it anymore
+	$table = YOURLS_DB_PREFIX . 'expiry';
+
+	$binds = array( 'keyword' => $keyword );
+	$sql = "DELETE FROM $table WHERE `keyword` = :keyword";
+	$ydb->fetchAffected($sql, $binds);
+
+
+}
+
+function expiry_prune_inc_auth( $var ) {
+	// Check signature against all possible users
+	global $yourls_user_passwords;
+	foreach( $yourls_user_passwords as $valid_user => $valid_password )
+		if ( yourls_auth_signature( $valid_user ) === $var ) {
+			yourls_set_user( $valid_user );
+			return true;
+		}
+	return false;
 }
 
 /*
@@ -1004,7 +1524,7 @@ function expiry_change_error_msg() {
 					}
 				}
 				elseif ( $return['code'] === 'error:url' ){
-					if ($url_exists = yourls_url_exists( $url )){
+					if ($url_exists = yourls_long_url_exists( $url )){
 						$keyword = $url_exists->keyword;
 						$return['status']   = 'success';
 						$return['message']	= 'This URL already has a short link: ' . YOURLS_SITE .'/'. $keyword;
@@ -1016,592 +1536,4 @@ function expiry_change_error_msg() {
 			return yourls_apply_filter( 'after_custom_error_message', $return, $url, $keyword, $title );
 		}
 	}
-}
-
-/*
- *
- *	API
- *
- *
-*/
-// Expire new links
-yourls_add_filter( 'add_new_link', 'expiry_new_link' );
-function expiry_new_link( $return, $url , $keyword, $title ) { 
-
-	// this method tolelrates no error in short url creation
-	if(isset ( $return['code'] ) ) {
-		switch( $return['code'] ) {
-			case 'error:url':
-				$return['expiry'] = 'Error: use "action => expiry" to add expiration data to a pre-esxisting url. No expiry data set';
-				return $return;
-			default:
-				return $return;
-		}
-	}
-
-	$opt = expiry_config();
-
-	$type = isset($_REQUEST['expiry']) ? $_REQUEST['expiry'] : $opt[9];
-
-	switch( $type ) {
-		case 'click': 									// ex. "expiry=click"
-			$click = (isset($_REQUEST['count']) ? $_REQUEST['count'] : $opt[8]);	// ex. "count=50"
-			if( !is_numeric( $click ) ){	
-				$return['expiry'] = "'count' must be a valid number, no expiry set";
-				return $return;
-			}
-
-			$fresh = $stale = 'dummy';	
-			$return['expiry'] = "$click click expiry set";
-			break;
-		case 'clock':									// ex. "expiry=clock"
-			$age = (isset($_REQUEST['age']) ? $_REQUEST['age'] : $opt[6]); 		// ex. "age=3"
-			if( !is_numeric( $age ) ) {
-				$return['expiry'] = "'age' must be a valid number, no expiry set";
-				return $return;
-			}
-
-			$ageMod = (isset($_REQUEST['ageMod']) ? $_REQUEST['ageMod'] : $opt[7]); // ex. "ageMod=hour"
-			if( !in_array( $ageMod, array( 'min', 'hour', 'day' ) ) ) {
-				$return['expiry'] = "'ageMod' must be 'min', 'day', or 'hour', no expiry set";
-				return $return;
-			}
-
-			$fresh = time();
-			$stale = expiry_age_mod($age, $ageMod);
-			$click = 'dummy';
-			$return['expiry'] = "$age $ageMod expiry set.";
-			break;
-		default:
-			return $return;
-		
-	}
-
-	$gpx    = $opt[5] == 'false' ? null : $opt[4];
-	$postx  = (isset($_REQUEST['postx']) ? $_REQUEST['postx'] : $gpx); 	// ex. "postx=https://example.com"
-	if($postx !== null && $postx !== 'none') {
-		$return['postx'] = $postx;
-		if (!filter_var($postx, FILTER_VALIDATE_URL) ) {
-			$return['postx'] = "invalid url, not set";
-			$postx = 'none';
-		}
-		elseif(!yourls_is_allowed_protocol( $postx ) ){
-			$return['postx'] = "disallowed protocol, not set";
-			$postx = 'none';
-		}
-	}
-
-	// All set, put it in the database
-	global $ydb;
-	$table = 'expiry';
-	if (version_compare(YOURLS_VERSION, '1.7.3') >= 0) {
-		$binds = array(	'keyword' => $keyword,
-						'type' => $type,
-						'click' => $click,
-						'fresh' => $fresh,
-						'stale' => $stale,
-						'postx' => $postx );
-		$sql = "REPLACE INTO $table (keyword, type, click, timestamp, shelflife, postexpire) VALUES ('$keyword', '$type', '$click', '$fresh', '$stale', '$postx')";
-		$insert = $ydb->fetchAffected($sql, $binds);
-	} else {
-		$insert = $ydb->query("REPLACE INTO `$table` (keyword, type, click, timestamp, shelflife, postexpire) VALUES ('$keyword', '$type', '$click', '$fresh', '$stale', '$postx')");
-	}
-
-	return yourls_apply_filter( 'after_expiry_new_link', $return, $url, $keyword, $title );
-}
-
-// Expiry old links
-yourls_add_filter( 'api_action_expiry', 'expiry_old_link' );
-function expiry_old_link() {
-	
-	$auth = yourls_is_valid_user();
-	if( $auth !== true ) {
-		$format = ( isset($_REQUEST['format']) ? $_REQUEST['format'] : 'xml' );
-		$callback = ( isset($_REQUEST['callback']) ? $_REQUEST['callback'] : '' );
-		yourls_api_output( $format, array(
-			'simple' => $auth,
-			'message' => $auth,
-			'errorCode' => 403,
-			'callback' => $callback,
-		) );
-	}
-
-	if( !isset( $_REQUEST['shorturl'] ) ) {
-		return array(
-			'statusCode' => 400,
-			'simple'     => "Need a 'shorturl' parameter",
-			'message'    => 'error: missing shorturl param',
-		);	
-	}
-
-	$shorturl = $_REQUEST['shorturl'];
-
-	if( !yourls_is_shorturl( $shorturl ) ) {
-		return array(
-			'statusCode' => 400,
-			'simple'     => "Not a valid short url",
-			'message'    => 'error: bad url',
-		);	
-	}
-
-	$keyword = str_replace( YOURLS_SITE . '/' , '', $shorturl ); // accept either 'http://ozh.in/abc' or 'abc'
-
-	$keyword = yourls_sanitize_string( $keyword );
-	$url = yourls_get_keyword_longurl( $keyword );
-	$title = yourls_get_keyword_title( $keyword );
-
-	$opt = expiry_config();
-
-	$type = isset($_REQUEST['expiry']) ? $_REQUEST['expiry'] : $opt[9];
-
-	switch( $type ) {
-
-		case 'click': 									// ex. "expiry=click"
-			$click = (isset($_REQUEST['count']) ? $_REQUEST['count'] : $opt[8]);	// ex. "count=50"
-			if( !is_numeric( $click ) ){
-				return array(
-					'statusCode' => 400,
-					'simple'     => "'count' must be a valid number, no expiry set",
-					'message'    => "error: 'count' must be a valid number",
-				);		
-			}
-
-			$fresh = $stale = null;	
-			$return['expiry'] = "$click click expiry set";
-			$return['expiry_type'] = "click";
-			$return['expiry_life'] = "$click";
-			break;
-
-		case 'clock':									// ex. "expiry=clock"
-			$age = (isset($_REQUEST['age']) ? $_REQUEST['age'] : $opt[6]);	// ex. "age=3"
-			if( !is_numeric( $age ) ) {
-				return array(
-					'statusCode' => 400,
-					'simple'     => "'age' must be a valid number, no expiry set",
-					'message'    => "error: 'age' must be a valid number",
-				);		
-			}
-
-			$ageMod = (isset($_REQUEST['ageMod']) ? $_REQUEST['ageMod'] : $opt[7]);	// ex. "ageMod=hour"
-			if( !in_array( $ageMod, array( 'min', 'hour', 'day' ) ) ) {
-				return array(
-					'statusCode' => 400,
-					'simple'     => "'ageMod' must be set to 'min', 'day', or 'hour', no expiry set",
-					'message'    => "error: 'ageMod' must be set to 'min', 'day', or 'hour'",
-				);		
-			}
-
-			$fresh = time();
-			$stale = expiry_age_mod($age, $ageMod);
-			$click = null;
-			$return['expiry'] = "$age $ageMod expiry set.";
-			$return['expiry_type'] = "clock";
-			$return['expiry_life'] = "$stale"; // in seconds
-			break;
-
-		case 'none':
-			return array(
-				'statusCode' => 400,
-				'simple'     => "'expiry' must be set to 'click' or 'clock', no expiry set",
-				'message'    => "error: 'expiry' must be set to 'click' or 'clock'",
-			);		
-	}
-
-	$gpx    = $opt[5] == 'false' ? null : $opt[4];
-	$postx  = (isset($_REQUEST['postx']) ? $_REQUEST['postx'] : $gpx);	// ex. "postx=https://example.com"
-	if($postx !== null && $postx !== 'none') {
-		$return['postx'] = $postx;
-		if (!filter_var($postx, FILTER_VALIDATE_URL) ) {
-			$return['postx'] = "error: invalid url, not set";
-			$postx = null;
-		}
-		elseif(!yourls_is_allowed_protocol( $postx ) ){
-			$return['postx'] = "error: disallowed protocol, not set";
-			$postx = null;
-		}
-	}
-	$shorturl = YOURLS_SITE . '/' . $keyword;
-	$return['statusCode'] = "200";
-	$return['message'] = "success: expiry set";
-	$return['shorturl'] = $shorturl;
-	$return['url'] = $url;
-	$return['title'] = $title;
-	$return['simple'] = "Success: '$type' expiry set for $shorturl ";
-	
-	// All set, put it in the database
-	global $ydb;
-	$table = 'expiry';
-	if (version_compare(YOURLS_VERSION, '1.7.3') >= 0) {
-		$binds = array(	'keyword' => $keyword,
-						'type' => $type,
-						'click' => $click,
-						'fresh' => $fresh,
-						'stale' => $stale,
-						'postx' => $postx );
-		$sql = "REPLACE INTO $table (keyword, type, click, timestamp, shelflife, postexpire) VALUES ('$keyword', '$type', '$click', '$fresh', '$stale', '$postx')";
-		$insert = $ydb->fetchAffected($sql, $binds);
-	} else {
-		$insert = $ydb->query("REPLACE INTO `$table` (keyword, type, click, timestamp, shelflife, postexpire) VALUES ('$keyword', '$type', '$click', '$fresh', '$stale', '$postx')");
-	}
-
-	return yourls_apply_filter( 'after_expiry_old_link', $return, $url, $keyword, $title );
-}
-// Check Shortlink expiry data
-yourls_add_filter( 'api_action_expiry-stats', 'expiry_stats_api' );
-function expiry_stats_api() {
-
-	if( !isset( $_REQUEST['shorturl'] ) ) {
-		return array(
-			'statusCode' => 400,
-			'simple'     => "Need a 'shorturl' parameter",
-			'message'    => 'error: missing shorturl param',
-		);	
-	}
-
-	$shorturl = $_REQUEST['shorturl'];
-
-	if( !yourls_is_shorturl( $shorturl ) ) {
-		return array(
-			'statusCode' => 400,
-			'simple'     => "Not a valid short url",
-			'message'    => 'error: bad url',
-		);	
-	}
-
-	$keyword = str_replace( YOURLS_SITE . '/' , '', $shorturl ); // accept either 'http://ozh.in/abc' or 'abc'
-	$keyword = yourls_sanitize_string( $keyword );
-
-	$args = array("expiry_infos", $keyword);
-	$infos = expiry_check( $args);
-
-	if( isset($infos[3])  && $infos[3] !=='' && $infos[3] !== 'none') { 
-		$postx_info = "This link will redirect to ".$infos[3]." after expiration.";
-		$postx_data = $infos[3];
-	} else {
-		$postx_info = null;
-		$postx_data = 'none';
-	}
-
-	if($infos[0] !== false) {
-		return array(
-			'statusCode' => 200,
-			'expiry'	 => $infos[1],
-			'postx'		 => $postx_data,
-			'simple'     => "This link is a ". $infos[0] .", it is beyond expiration. ".$postx_info,
-			'message'    => "This link is a ". $infos[0] .", it is beyond expiration. ".$postx_info
-		);
-	} else {
-
-		switch ($infos[1]) {
-			case 'none':
-				return array(
-					'statusCode' => 200,
-					'expiry		'=> 'none',
-					'simple'     => "No expiry data set.",
-					'message'    => "No expiry data set."
-				);
-				break;
-			case 'click':
-				return array(
-					'statusCode' => 200,
-					'expiry'	 => 'click',
-					'countdown'  => $infos[2],
-					'postx'		 => $postx_data,
-					'simple'     => "Short URL has ".$infos[2]." clicks left. ".$postx_info,
-					'message'    => "Short URL has ".$infos[2]." clicks left. ".$postx_info
-				);
-				break;
-
-			case 'clock':
-				return array(
-					'statusCode' => 200,
-					'expiry_type'=> 'clock',
-					'countdown'  => $infos[2],
-					'postx'		 => $postx_data,
-					'simple'     => "Short URL will expire in ".$infos[2]." . ".$postx_info,
-					'message'    => "Short URL will expire in ".$infos[2]." . ".$postx_info
-				);
-				break;
-			default:				
-				return array(
-					'statusCode' => 400,
-					'simple'     => "Not able to retrieve expiry data, please check your configuraiton (call).",
-					'message'    => "Not able to retrieve expiry data, please check your configuraiton (call)."
-				);
-				break;
-		}
-	}
-}
-
-// Prune away expired links
-yourls_add_filter( 'api_action_prune', 'expiry_prune_api' );
-function expiry_prune_api() {
-
-	$auth = yourls_is_valid_user();
-	if( $auth !== true ) {
-		$format = ( isset($_REQUEST['format']) ? $_REQUEST['format'] : 'xml' );
-		$callback = ( isset($_REQUEST['callback']) ? $_REQUEST['callback'] : '' );
-		yourls_api_output( $format, array(
-			'simple' => $auth,
-			'message' => $auth,
-			'errorCode' => 403,
-			'callback' => $callback,
-		) );
-	}
-
-	// We need a scope for the prune
-	if( !isset( $_REQUEST['scope'] ) ) {
-		return array(
-			'statusCode' => 400,
-			'simple'     => "Need a 'scope' parameter",
-			'message'    => "error: missing 'scope' param",
-		);	
-	}
-	
-	// Scope must be in range
-	if( !in_array( $_REQUEST['scope'], array( 'expired', 'scrub', 'killall' ) ) ) {
-		return array(
-			'statusCode' => 400,
-			'simple'     => "Error: 'scope' must be set to 'expired', 'scrub' or 'killall'",
-			'message'    => "error: bad param value for 'scope'",
-			);
-	}
-
-	$type = $_REQUEST['scope'];
-	switch( $type ) {
-		case 'expired':
-			
-			if( expiry_db_flush( $type ) ) {
-				return array(
-					'statusCode' => 200,
-					'simple'     => "Expired links have been pruned",
-					'message'    => 'success: pruned',
-				);
-			} else {
-				return array(
-					'statusCode' => 500,
-					'simple'     => 'Error: could not prune expiry, not sure why :-/',
-					'message'    => 'error: unknown error',
-				);
-			}
-
-		case 'scrub':
-			
-			if( expiry_db_flush( $type ) ) {
-				return array(
-					'statusCode' => 200,
-					'simple'     => "Expirations have been stripped from all links",
-					'message'    => 'success: pruned',
-				);
-			} else {
-				return array(
-					'statusCode' => 500,
-					'simple'     => 'Error: could not prune expiry, not sure why :-/',
-					'message'    => 'error: unknown error',
-				);
-			}
-
-		case 'killall':
-			
-			if( expiry_db_flush( $type ) ) {
-				return array(
-					'statusCode' => 200,
-					'simple'     => "All perishable links have been pruned",
-					'message'    => 'success: pruned',
-				);
-			} else {
-				return array(
-					'statusCode' => 500,
-					'simple'     => 'Error: could not prune expiry, not sure why :-/',
-					'message'    => 'error: unknown error',
-				);
-			}
-	}
-}
-
-/*
- *
- *	Database
- *
- *
-*/
-// Create tables for this plugin when activated
-yourls_add_action( 'activated_expiry/plugin.php', 'expiry_activated' );
-function expiry_activated() {
-
-	global $ydb;
-
-	$init = yourls_get_option('expiry_init');
-	if ($init === false) {
-		// Create the init value
-		yourls_add_option('expiry_init', time());
-		// Create the expiry table
-		$table_expiry  = "CREATE TABLE IF NOT EXISTS expiry (";
-		$table_expiry .= "keyword varchar(200) NOT NULL, ";
-		$table_expiry .= "type varchar(5) NOT NULL, ";
-		$table_expiry .= "click varchar(5), ";
-		$table_expiry .= "timestamp varchar(20), ";
-		$table_expiry .= "shelflife varchar(20), ";
-		$table_expiry .= "postexpire varchar(200), ";
-		$table_expiry .= "PRIMARY KEY (keyword) ";
-		$table_expiry .= ") ENGINE=MyISAM DEFAULT CHARSET=latin1;";
-
-		if (version_compare(YOURLS_VERSION, '1.7.3') >= 0) {
-			$tables = $ydb->fetchAffected($table_expiry);
-		} else {
-			$tables = $ydb->query($table_expiry);
-		}
-
-		yourls_update_option('expiry_init', time());
-		$init = yourls_get_option('expiry_init');
-		if ($init === false) {
-			die("Unable to properly enable expiry due an apparent problem with the database.");
-		}
-	}
-}
-
-// Delete table when plugin is deactivated
-yourls_add_action('deactivated_expiry/plugin.php', 'expiry_deactivate');
-function expiry_deactivate() {
-	$expiry_table_drop = yourls_get_option('expiry_table_drop');
-	if ( $expiry_table_drop !== 'false' ) {
-		global $ydb;
-	
-		$init = yourls_get_option('expiry_init');
-		if ($init !== false) {
-			yourls_delete_option('expiry_init');
-			$table = "expiry";
-			if (version_compare(YOURLS_VERSION, '1.7.3') >= 0) {
-				$sql = "DROP TABLE IF EXISTS $table";
-				$ydb->fetchAffected($sql);
-			} else {
-				$ydb->query("DROP TABLE IF EXISTS $table");
-			}
-		}
-	}
-}
-
-// DB Flushing
-function expiry_db_flush( $type ) {
-	global $ydb;
-	$table = 'expiry';
-	switch ( $type ) {
-		// remove expiry data from all links & preserve the short url	
-		case 'scrub':
-			$init_1 = yourls_get_option('expiry_init');
-
-			if ($init_1 !== false) {
-				if (version_compare(YOURLS_VERSION, '1.7.3') >= 0) {
-					$sql = "TRUNCATE TABLE $table";
-					$ydb->fetchAffected($sql);
-				} else {
-					$ydb->query("TRUNCATE TABLE `$table`");
-				}
-
-				yourls_update_option('expiry_init', time());
-				$init_2 = yourls_get_option('expiry_init');
-				if ($init_2 === false || $init_1 == $init_2) {
-					die("Unable to properly reset the database. Contact your sys admin");
-				}
-			}
-
-			$result = true;
-			break;
-			
-		// delete every short url that is set to expire	
-		case 'killall': // nuke
-			if (version_compare(YOURLS_VERSION, '1.7.3') >= 0) {
-				$sql = "SELECT * FROM `$table` ORDER BY timestamp DESC";
-				$expiry_list = $ydb->fetchObjects($sql);
-			} else {
-				$ydb->get_results("SELECT * FROM `$table` ORDER BY timestamp DESC");
-			}
-			
-			if($expiry_list) {
-				foreach( $expiry_list as $expiry ) {
-					$keyword = $expiry->keyword;
-					yourls_delete_link_by_keyword( $keyword );
-				}
-			}
-
-			$result = true;
-			break;
-
-		case 'expired': // get rid of expired links that have not been triggered
-		default:
-			$time = time();
-			$limit = 10000;
-
-			$countQuery = "SELECT count(1) as c FROM $table exp
-					INNER JOIN yourls_url yu ON yu.keyword = exp.keyword
-					WHERE (exp.type = 'clock' AND (exp.timestamp + exp.shelflife) < $time)
-						OR (exp.type = 'click' AND yu.clicks >= exp.click)";
-
-			if (version_compare(YOURLS_VERSION, '1.7.3') >= 0) {
-				$countObject = $ydb->fetchObjects($countQuery);
-			} else {
-				$countObject = $ydb->get_results($countQuery);
-			}
-
-			$allRowNum = empty($countObject[0]->c) ? 0 : $countObject[0]->c;
-			$iterations = ceil($allRowNum / $limit);
-
-			while ($iterations > 0) {
-				$iterations = $iterations - 1;
-
-				$sql = "SELECT exp.*, yu.clicks FROM $table exp
-						INNER JOIN yourls_url yu ON yu.keyword = exp.keyword
-						WHERE (exp.type = 'clock' AND (exp.timestamp + exp.shelflife) < $time)
-							OR (exp.type = 'click' AND yu.clicks >= exp.click)
-						LIMIT $limit";
-				if (version_compare(YOURLS_VERSION, '1.7.3') >= 0) {
-					$expiry_list = $ydb->fetchObjects($sql);
-				} else {
-					$expiry_list = $ydb->get_results($sql);
-				}
-
-				if($expiry_list) {
-					foreach( $expiry_list as $expiry ) {
-						$keyword = $expiry->keyword;
-						$args = array("prune", $keyword);
-						expiry_check($args);
-					}
-				}
-			}
-			$result = true;
-			break;
-	}
-
-	return $result;
-}
-// auto-delete expiry records 
-yourls_add_action( 'delete_link', 'expiry_cleanup' );	// cleanup on keyword deletion
-function expiry_cleanup( $args ) {
-	global $ydb;
-
-    $keyword = $args[0]; // Keyword to delete
-
-	// Delete the expiry data, no need for it anymore
-	$table = "expiry";
-
-	if (version_compare(YOURLS_VERSION, '1.7.3') >= 0) {
-		$binds = array(	'keyword' => $keyword );
-		$sql = "DELETE FROM $table WHERE `keyword` = :keyword";
-		$ydb->fetchAffected($sql, $binds);
-	} else {
-		$ydb->query("DELETE FROM `$table` WHERE `keyword` = '$keyword';");
-	}
-
-
-}
-
-function expiry_prune_inc_auth( $var ) {
-	// Check signature against all possible users
-	global $yourls_user_passwords;
-	foreach( $yourls_user_passwords as $valid_user => $valid_password )
-		if ( yourls_auth_signature( $valid_user ) === $var ) {
-			yourls_set_user( $valid_user );
-			return true;
-		}
-	return false;
 }

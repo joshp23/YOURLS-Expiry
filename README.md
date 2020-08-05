@@ -2,13 +2,15 @@
 [YOURLS](https://github.com/YOURLS/YOURLS) plugin to define conditions under which links will expire - time and click limited links
 
 #### Installation
-Works with YOURLS 1.7.3 (current from YOURLS master git) or YOURLS 1.7.2 with the following additional commit [dd78d7f](https://github.com/YOURLS/YOURLS/commit/dd78d7f226017b8dbba4f2e9ee4baafe759a7dee) from YOURLS master. 
+MASTER branch of this plugin works with YOURLS 1.7.10 +  
+There is a separate branch for 1.7.9
  
 As any YOURLS plugin:
 -  Extract the `expiry` folder from this repo, and place it at `user/plugins/expiry`
 -  Enable in admin area
-
-The databse ought to create itself, if not, there is an sql file in the `expiry/assets` folder
+##### Notes:
+- The databse ought to create itself, if not, there is an sql file in the `expiry/assets` folder, make sure to add your database prefix where necessary.
+- If upgrading from 2.1.x of this plugin to 2.2.x, set `define( 'EXPIRY_DB_UPDATE', true );` in `config.php` __for one page load__ in order to update the database, otherwise this plugin will not work. 
 ##### What's Working:
 -  add per-link and/or global time based or click count limited links
 -  update links already in database to have expiration conditions
