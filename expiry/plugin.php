@@ -1347,24 +1347,24 @@ function expiry_db_flush( $type ) {
 			$allRowNum = empty($countObject[0]->c) ? 0 : $countObject[0]->c;
 			$iterations = ceil($allRowNum / $limit);
 
-            while ($iterations > 0) {
-                $iterations = $iterations - 1;
+			while ($iterations > 0) {
+				$iterations = $iterations - 1;
 
-                $sql = "SELECT exp.*, yu.clicks FROM $table exp
+				$sql = "SELECT exp.*, yu.clicks FROM $table exp
 						INNER JOIN yourls_url yu ON yu.keyword = exp.keyword
 						WHERE (exp.type = 'clock' AND (exp.timestamp + exp.shelflife) < $time)
 							OR (exp.type = 'click' AND yu.clicks >= exp.click)
 						LIMIT $limit";
 
-                $expiry_list = $ydb->fetchObjects($sql);
+				$expiry_list = $ydb->fetchObjects($sql);
 
-                if ($expiry_list) {
-                    foreach ($expiry_list as $expiry) {
-                        $keyword = $expiry->keyword;
-                        $args = array("prune", $keyword);
-                        expiry_check($args);
-                    }
-                }
+				if ($expiry_list) {
+					foreach ($expiry_list as $expiry) {
+						$keyword = $expiry->keyword;
+						$args = array("prune", $keyword);
+						expiry_check($args);
+					}
+				}
             }
 			$result = true;
 			break;		
@@ -1378,7 +1378,7 @@ yourls_add_action( 'delete_link', 'expiry_cleanup' );	// cleanup on keyword dele
 function expiry_cleanup( $args ) {
 	global $ydb;
 
-    	$keyword = $args[0]; // Keyword to delete
+	$keyword = $args[0]; // Keyword to delete
 
 	// Delete the expiry data, no need for it anymore
 	$table = YOURLS_DB_PREFIX . 'expiry';
