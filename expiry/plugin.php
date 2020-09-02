@@ -456,7 +456,7 @@ echo <<<HTML
 		if (alias != "") {
          document.getElementById('shorturl').value = alias;
 			$(window).on("unload", function() {
-				document.cookie = 'expiry'+'=; Max-Age=-99999999; SameSite=Strict;';  
+				document.cookie = 'expiry'+'=; Max-Age=-99999999;';  
 			});
 		}
 	</script>
@@ -1329,25 +1329,46 @@ function expiry_db_flush( $type ) {
 				}
 			}
 
-			$result = true;	
+			$result = true;
 			break;
-		
+
 		case 'expired': // get rid of expired links that have not been triggered
 		default:
 
-			$sql = "SELECT * FROM `$table` ORDER BY timestamp DESC";
-			$expiry_list = $ydb->fetchObjects($sql);
-				
-			if($expiry_list) {
-				foreach( $expiry_list as $expiry ) {
-					$keyword = $expiry->keyword;
-					$args = array("prune", $keyword);
-					expiry_check($args);
+			$time = time();
+			$limit = 10000;
+
+			$countQuery = "SELECT count(1) as c FROM $table exp
+					INNER JOIN yourls_url yu ON yu.keyword = exp.keyword
+					WHERE (exp.type = 'clock' AND (exp.timestamp + exp.shelflife) < $time)
+						OR (exp.type = 'click' AND yu.clicks >= exp.click)";
+			$countObject = $ydb->fetchObjects($countQuery);
+
+			$allRowNum = empty($countObject[0]->c) ? 0 : $countObject[0]->c;
+			$iterations = ceil($allRowNum / $limit);
+
+			while ($iterations > 0) {
+				$iterations = $iterations - 1;
+
+				$sql = "SELECT exp.*, yu.clicks FROM $table exp
+						INNER JOIN yourls_url yu ON yu.keyword = exp.keyword
+						WHERE (exp.type = 'clock' AND (exp.timestamp + exp.shelflife) < $time)
+							OR (exp.type = 'click' AND yu.clicks >= exp.click)
+						LIMIT $limit";
+
+				$expiry_list = $ydb->fetchObjects($sql);
+
+				if ($expiry_list) {
+					foreach ($expiry_list as $expiry) {
+						$keyword = $expiry->keyword;
+						$args = array("prune", $keyword);
+						expiry_check($args);
+					}
 				}
 			}
-
 			$result = true;
-			break;
+			break;		
+			
 	}
 
 	return $result;
@@ -1357,7 +1378,7 @@ yourls_add_action( 'delete_link', 'expiry_cleanup' );	// cleanup on keyword dele
 function expiry_cleanup( $args ) {
 	global $ydb;
 
-    	$keyword = $args[0]; // Keyword to delete
+	$keyword = $args[0]; // Keyword to delete
 
 	// Delete the expiry data, no need for it anymore
 	$table = YOURLS_DB_PREFIX . 'expiry';
