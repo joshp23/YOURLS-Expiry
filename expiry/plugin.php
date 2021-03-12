@@ -568,7 +568,7 @@ function show_expiry_tablerow($row, $keyword, $url, $title, $ip, $clicks, $times
 		// If the keyword is set to expire, make the URL show in green;
 		$table = YOURLS_DB_PREFIX . 'expiry';
 
-		$sql = "SELECT * FROM $table WHERE BINARY `keyword` = :keyword";
+		$sql = "SELECT * FROM $table WHERE `keyword` = :keyword";
 		$binds = array('keyword' => $keyword);
 		$expiry = $ydb->fetchOne($sql, $binds);
 	
@@ -1282,7 +1282,7 @@ function expiry_activated() {
 	// Create the expiry table
 	$table = YOURLS_DB_PREFIX . 'expiry';
 	$table_expiry  = "CREATE TABLE IF NOT EXISTS `".$table."` (";
-	$table_expiry .= "keyword varchar(200) NOT NULL, ";
+	$table_expiry .= "keyword binary(100) NOT NULL, ";
 	$table_expiry .= "type varchar(5) NOT NULL, ";
 	$table_expiry .= "click varchar(5), ";
 	$table_expiry .= "timestamp varchar(20), ";
