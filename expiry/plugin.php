@@ -3,7 +3,7 @@
 Plugin Name: Expiry
 Plugin URI: https://github.com/joshp23/YOURLS-Expiry
 Description: Will set expiration conditions on your links (or not)
-Version: 2.4.0
+Version: 2.4.1
 Author: Josh Panter
 Author URI: https://unfettered.net
 */
@@ -387,7 +387,7 @@ function expiry_list($nonce) {
 	global $ydb;
 echo <<<HTML
 	<form method="post">
-		<table id="main_table" class="tblSorter" border="1" cellpadding="5" style="border-collapse: collapse">
+		<table id="expiry_table" border="1" cellpadding="5">
 			<thead>
 				<tr>
 					<th>Alias</th>
@@ -410,7 +410,7 @@ echo <<<HTML
 							<option value="clock">Timer</option>
 						</select>
 					</td>
-					<td><input type="text" size="5" name="count" id="count" value="" disabled ></td>
+					<td><input type="text" size="3" name="count" id="count" value="" disabled ></td>
 					<td><input type="text" size="3" name="age" id="age" value="" disabled ></td>
 					<td>
 						<select name="ageMod" id="ageMod" size="1" disabled >
@@ -420,9 +420,9 @@ echo <<<HTML
 							<option value="day" >Days</option>
 						</select>
 					</td>
-					<td><input type="text" name="postx" id="postx" size="30" disabled></td>
+					<td><input type="text" name="postx" id="postx" size="" disabled></td>
 					<td colspan=3 align=right>
-						<input type=submit name="submit" value="Submit: Expiry an Old Link">
+						<input type=submit name="submit" value="Submit">
 						<input type="hidden" name="nonce" value="$nonce" />
 					</td>
 				</tr>
