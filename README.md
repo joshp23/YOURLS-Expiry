@@ -23,6 +23,7 @@ As any YOURLS plugin:
    - one-click management of expiry data, bulk or individual
    - admin page action link button
    - expiry data on admin page under share box
+   - expiry functions in admin filtered by [AuthMgrPlus](https://github.com/joshp23/YOURLS-AuthMgrPlus), if installed
 -  robust api interface (documentation provided)
    - add and update individual links with precise detail
    - manage database with a cron call (pre-formatted example provided)

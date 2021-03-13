@@ -3,7 +3,7 @@
 Plugin Name: Expiry
 Plugin URI: https://github.com/joshp23/YOURLS-Expiry
 Description: Will set expiration conditions on your links (or not)
-Version: 2.3.5
+Version: 2.4.0
 Author: Josh Panter
 Author URI: https://unfettered.net
 */
@@ -585,17 +585,6 @@ function show_expiry_tablerow($row, $keyword, $url, $title, $ip, $clicks, $times
 	} else
 		return $row;
 }
-
-// Add a Expiry Button to the Admin interface
-yourls_add_filter( 'action_links', 'expiry_admin_button' );
-function expiry_admin_button( $action_links, $keyword, $url, $ip, $clicks, $timestamp ) {
-
-	$home = YOURLS_SITE . "/admin/plugins.php?page=expiry#stat_tab_exp_list";
-	$action_links .= '<a href='.$home.' title="Expiry" onclick=setExpiryCookie("expiry","'.$keyword.'"); class="button button_expiry">Add Expiry Data</a>';
-
- 	return $action_links;
-}
-
 // Expiry data in Share box on admin page
 yourls_add_action('yourls_ajax_expiry-stats', 'expiry_stats_ajax');
 function expiry_stats_ajax( ) {
@@ -603,17 +592,44 @@ function expiry_stats_ajax( ) {
 	$return = expiry_check( array( "expiry_infos" , $shorturl ) );
 	echo json_encode($return);
 }
+// Add a Expiry Button to the Admin interface
+yourls_add_filter( 'table_add_row_action_array', 'expiry_admin_button' );
+function expiry_admin_button ( $actions, $keyword ) {
+
+	$list = YOURLS_SITE . "/admin/plugins.php?page=expiry#stat_tab_exp_list";
+	$id = yourls_string2htmlid( $keyword );
+	$expiry = array (
+		'expiry' => array(
+			'href'    => "$list",
+			'id'      => "trlink-$id",
+			'title'   => yourls_esc_attr__( 'Expiry' ),
+			'anchor'  => yourls__( 'Add Expiry Data' ),
+			'onclick' => "setExpiryCookie( 'expiry' , '$keyword' );",
+			)
+		);
+	$result = array_merge( $actions, $expiry ); ;
+ 	return $result;
+}
 // Is authMgrPlus active?
 yourls_add_action( 'plugins_loaded', 'expiry_amp_check' );
 function expiry_amp_check() {
 	if( yourls_is_active_plugin( 'authMgrPlus/plugin.php' ) ) {
 		yourls_add_filter( 'amp_action_capability_map', 'amp_cap_extends');
+		yourls_add_filter( 'amp_button_capability_map', 'expiry_button_cap' );
+		yourls_add_filter( 'amp_restricted_buttons', 'expiry_restricted' );
 	}
 }
-// Maybe extend authMgrPlus capability map to include expiry ajax call 
 function amp_cap_extends( $map ) {
-	$map += ['expiry-stats' => 'ViewStats'];
+	$map += ['expiry-stats' => ampCap::ViewStats];
 	return $map;
+}
+function expiry_button_cap ( $var ) {
+	$var += ['expiry' => ampCap::DeleteURL];
+	return $var;
+}
+function expiry_restricted ( $var ) {
+	$var += ['expiry'];
+	return $var;
 }
 
 yourls_add_filter( 'table_head_start', 'expiry_stats_admin');
