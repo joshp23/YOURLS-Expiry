@@ -11,18 +11,66 @@ Author URI: https://unfettered.net
 if( !defined( 'YOURLS_ABSPATH' ) ) die();
 /*
  *
+ * EARLY LOADER FUNCTIONS
+ *
+ *
+*/
+yourls_add_action( 'plugins_loaded', function () {
+
+	// Register admin forms
+	yourls_register_plugin_page( 'expiry', 'Expiry', 'expiry_do_page' );
+	
+	// Is authMgrPlus active?
+	if( yourls_is_active_plugin( 'authMgrPlus/plugin.php' ) ) {
+		
+		yourls_add_filter( 'amp_action_capability_map', function( $var ) {
+			$var += ['expiry-stats' => ampCap::ViewStats]; 
+			return $var; } );
+			
+		yourls_add_filter( 'amp_button_capability_map', function( $var ) { 
+			$var += ['expiry' => ampCap::DeleteURL];
+			return $var; } );
+			
+		yourls_add_filter( 'amp_restricted_buttons', 	function( $var ) { 
+			$var += ['expiry'];
+			return $var; } );
+	}
+
+	// Expiry-Change-Error-MSG
+	if( !yourls_is_active_plugin('change-error-messages/plugin.php') ) {
+		// If the keyword exists, display the long URL in the error message
+		yourls_add_filter( 'add_new_link', function ( $return, $url, $keyword, $title  ) {
+			if ( isset( $return['code'] ) ) {
+				if ( $return['code'] === 'error:keyword' ){
+					$long_url = yourls_get_keyword_longurl( $keyword );
+					if ($long_url){
+						$return['message']	= 'The keyword "' . $keyword . '" already exists for: ' . $long_url;
+					} elseif ( yourls_keyword_is_reserved( $keyword ) ){
+									$return['message']	= "The keyword '" . $keyword . "' is reserved";
+					}
+				}
+				elseif ( $return['code'] === 'error:url' ){
+					if ($url_exists = yourls_long_url_exists( $url )){
+						$keyword = $url_exists->keyword;
+						$return['status']   = 'success';
+						$return['message']	= 'This URL already has a short link: ' . YOURLS_SITE .'/'. $keyword;
+						$return['title']    = $url_exists->title;
+						$return['shorturl'] = YOURLS_SITE .'/'. $keyword;
+					}
+				}
+			}
+			return yourls_apply_filter( 'after_custom_error_message', $return, $url, $keyword, $title );
+		});
+	}
+});
+/*
+ *
  * ADMIN PAGE
  *
  *
 */
-// Register admin forms
-yourls_add_action( 'plugins_loaded', 'expiry_add_pages' );
-function expiry_add_pages() {
-        yourls_register_plugin_page( 'expiry', 'Expiry', 'expiry_do_page' );
-}
 // Display page 0.01 - maybe insert some JS and CSS files to head
-yourls_add_action( 'html_head', 'expiry_head' );
-function expiry_head($context) {
+yourls_add_action( 'html_head', function ($context) {
 	if ( $context[0] == 'plugin_page_expiry' ) {
 		$home = YOURLS_SITE;
 		echo "<link rel=\"stylesheet\" href=\"".$home."/css/infos.css?v=".YOURLS_VERSION."\" type=\"text/css\" media=\"screen\" />\n";
@@ -37,7 +85,7 @@ function expiry_head($context) {
 		echo "<link rel=\"stylesheet\" href=\"".$loc."/assets/expiry.css?v=".$v."\" type=\"text/css\" />\n";
 		echo "<! --------------------------Expiry END---------------------------- >\n";
 	}
-}
+});
 function expiry_do_page() {
 
 	expiry_update_ops();
@@ -464,8 +512,7 @@ HTML;
 }
 
 // Change Admin page New URL submission form
-yourls_add_filter( 'shunt_html_addnew', 'expiry_override_html_addnew' );
-function expiry_override_html_addnew( $shunt, $url, $keyword ) {
+yourls_add_filter( 'shunt_html_addnew', function ( $shunt, $url, $keyword ) {
 
 	$opt = expiry_config();
 	$e_p = $c_c = $t_t = 'none';
@@ -553,11 +600,10 @@ function expiry_override_html_addnew( $shunt, $url, $keyword ) {
 	</script>
 	<?php 
 	return $shunt = true;
-}
+});
 
 // Mark expiry links on admin page FIXME identify freshly added links
-yourls_add_filter( 'table_add_row', 'show_expiry_tablerow' );
-function show_expiry_tablerow($row, $keyword, $url, $title, $ip, $clicks, $timestamp) {
+yourls_add_filter( 'table_add_row', function ($row, $keyword, $url, $title, $ip, $clicks, $timestamp) {
 	
 	global $ydb;
 	
@@ -584,17 +630,17 @@ function show_expiry_tablerow($row, $keyword, $url, $title, $ip, $clicks, $times
 
 	} else
 		return $row;
-}
+});
+
 // Expiry data in Share box on admin page
-yourls_add_action('yourls_ajax_expiry-stats', 'expiry_stats_ajax');
-function expiry_stats_ajax( ) {
+yourls_add_action('yourls_ajax_expiry-stats', function () {
 	$shorturl = $_REQUEST['shorturl'];	
 	$return = expiry_check( array( "expiry_infos" , $shorturl ) );
 	echo json_encode($return);
-}
+});
+
 // Add a Expiry Button to the Admin interface
-yourls_add_filter( 'table_add_row_action_array', 'expiry_admin_button' );
-function expiry_admin_button ( $actions, $keyword ) {
+yourls_add_filter( 'table_add_row_action_array', function ( $actions, $keyword ) {
 
 	$list = YOURLS_SITE . "/admin/plugins.php?page=expiry#stat_tab_exp_list";
 	$id = yourls_string2htmlid( $keyword );
@@ -609,41 +655,17 @@ function expiry_admin_button ( $actions, $keyword ) {
 		);
 	$result = array_merge( $actions, $expiry ); ;
  	return $result;
-}
-// Is authMgrPlus active?
-yourls_add_action( 'plugins_loaded', 'expiry_amp_check' );
-function expiry_amp_check() {
-	if( yourls_is_active_plugin( 'authMgrPlus/plugin.php' ) ) {
-		yourls_add_filter( 'amp_action_capability_map', 'amp_cap_extends');
-		yourls_add_filter( 'amp_button_capability_map', 'expiry_button_cap' );
-		yourls_add_filter( 'amp_restricted_buttons', 'expiry_restricted' );
-	}
-}
-function amp_cap_extends( $map ) {
-	$map += ['expiry-stats' => ampCap::ViewStats];
-	return $map;
-}
-function expiry_button_cap ( $var ) {
-	$var += ['expiry' => ampCap::DeleteURL];
-	return $var;
-}
-function expiry_restricted ( $var ) {
-	$var += ['expiry'];
-	return $var;
-}
+});
 
-yourls_add_filter( 'table_head_start', 'expiry_stats_admin');
-function expiry_stats_admin($start) {
-	$newStart = '<div style="text-align:center; padding-top: 5px;"id="exp_result" class="text-success"></div>'."\n".$start;
-	return $newStart;
-}
+yourls_add_filter( 'table_head_start', function ($start) {
+	return '<div style="text-align:center; padding-top: 5px;"id="exp_result" class="text-success"></div>'."\n".$start;
+});
 
 // Expiry data for info page stats tab
-yourls_add_action('pre_yourls_info_stats', 'expiry_stats');
-function expiry_stats($keyword) {
+yourls_add_action('pre_yourls_info_stats', function ($keyword) {
 	$infos = expiry_check( array( "expiry_infos" , $keyword[0] ) );
 	echo "<strong>Expiry</strong>: " . $infos['simple'];
-}
+});
 
 /*
  *
@@ -658,15 +680,24 @@ function expiry_update_ops() {
 		yourls_verify_nonce( 'expiry' );
 
 		yourls_update_option( 'expiry_global_expiry', $_POST['expiry_global_expiry'] );
-		if(isset( $_POST['expiry_default_click'] )) yourls_update_option( 'expiry_default_click', $_POST['expiry_default_click'] );
-		if(isset( $_POST['expiry_default_age'] )) yourls_update_option( 'expiry_default_age', $_POST['expiry_default_age'] );
-		if(isset( $_POST['expiry_default_age_mod'] )) yourls_update_option( 'expiry_default_age_mod', $_POST['expiry_default_age_mod'] );
-		if(isset( $_POST['expiry_intercept'] )) yourls_update_option( 'expiry_intercept', $_POST['expiry_intercept'] );
-		if(isset( $_POST['expiry_custom'] )) yourls_update_option( 'expiry_custom', $_POST['expiry_custom'] );
-		if(isset( $_POST['expiry_global_post_expire_chk'] )) yourls_update_option( 'expiry_global_post_expire_chk', $_POST['expiry_global_post_expire_chk'] );
-		if(isset( $_POST['expiry_global_post_expire'] )) yourls_update_option( 'expiry_global_post_expire', $_POST['expiry_global_post_expire'] );
-		if(isset( $_POST['expiry_expose'] )) yourls_update_option( 'expiry_expose', $_POST['expiry_expose'] );
-		if(isset( $_POST['expiry_table_drop'] )) yourls_update_option( 'expiry_table_drop', $_POST['expiry_table_drop'] );
+		if(isset( $_POST['expiry_default_click'] )) 
+			yourls_update_option( 'expiry_default_click', $_POST['expiry_default_click'] );
+		if(isset( $_POST['expiry_default_age'] )) 
+			yourls_update_option( 'expiry_default_age', $_POST['expiry_default_age'] );
+		if(isset( $_POST['expiry_default_age_mod'] )) 
+			yourls_update_option( 'expiry_default_age_mod', $_POST['expiry_default_age_mod'] );
+		if(isset( $_POST['expiry_intercept'] )) 
+			yourls_update_option( 'expiry_intercept', $_POST['expiry_intercept'] );
+		if(isset( $_POST['expiry_custom'] )) 
+			yourls_update_option( 'expiry_custom', $_POST['expiry_custom'] );
+		if(isset( $_POST['expiry_global_post_expire_chk'] )) 
+			yourls_update_option( 'expiry_global_post_expire_chk', $_POST['expiry_global_post_expire_chk'] );
+		if(isset( $_POST['expiry_global_post_expire'] )) 
+			yourls_update_option( 'expiry_global_post_expire', $_POST['expiry_global_post_expire'] );
+		if(isset( $_POST['expiry_expose'] )) 
+			yourls_update_option( 'expiry_expose', $_POST['expiry_expose'] );
+		if(isset( $_POST['expiry_table_drop'] )) 
+			yourls_update_option( 'expiry_table_drop', $_POST['expiry_table_drop'] );
 
 	}
 }
@@ -921,8 +952,7 @@ function expiry_stats_response( $infos ) {
  *
 */
 // Expire new links
-yourls_add_filter( 'add_new_link', 'expiry_new_link' );
-function expiry_new_link( $return, $url , $keyword, $title ) { 
+yourls_add_filter( 'add_new_link', function ( $return, $url , $keyword, $title ) { 
 
 	// this method tolelrates no error in short url creation
 	if(isset ( $return['code'] ) ) {
@@ -1004,7 +1034,7 @@ function expiry_new_link( $return, $url , $keyword, $title ) {
 		
 
 	return yourls_apply_filter( 'after_expiry_new_link', $return, $url, $keyword, $title );
-}
+});
 
 // Expiry old links
 yourls_add_filter( 'api_action_expiry', 'expiry_old_link' );
@@ -1141,8 +1171,7 @@ function expiry_old_link() {
 	return yourls_apply_filter( 'after_expiry_old_link', $return, $url, $keyword, $title );
 }
 // Check Shortlink expiry data
-yourls_add_filter( 'api_action_expiry-stats', 'expiry_stats_api' );
-function expiry_stats_api() {
+yourls_add_filter( 'api_action_expiry-stats', function () {
 
 	if( !isset( $_REQUEST['shorturl'] ) ) {
 		return array(
@@ -1164,11 +1193,10 @@ function expiry_stats_api() {
 
 	$return = expiry_check( array( "expiry_infos" , $r ) );
 	return $return;
-}
+});
 
 // Prune away expired links
-yourls_add_filter( 'api_action_prune', 'expiry_prune_api' );
-function expiry_prune_api() {
+yourls_add_filter( 'api_action_prune', function () {
 
 	$auth = yourls_is_valid_user();
 	if( $auth !== true ) {
@@ -1250,7 +1278,7 @@ function expiry_prune_api() {
 				);
 			}
 	}
-}
+});
 
 /*
  *
@@ -1291,8 +1319,7 @@ function expiry_update_DB () {
 	}
 }
 // Create tables for this plugin when activated
-yourls_add_action( 'activated_expiry/plugin.php', 'expiry_activated' );
-function expiry_activated() {
+yourls_add_action( 'activated_expiry/plugin.php', function () {
 
 	global $ydb;
 	// Create the expiry table
@@ -1308,11 +1335,10 @@ function expiry_activated() {
 	$table_expiry .= ") ENGINE=InnoDB DEFAULT CHARSET=latin1;";
 
 	$tables = $ydb->fetchAffected($table_expiry);
-}
+});
 
 // Delete table when plugin is deactivated
-yourls_add_action('deactivated_expiry/plugin.php', 'expiry_deactivate');
-function expiry_deactivate() {
+yourls_add_action('deactivated_expiry/plugin.php', function () {
 	$expiry_table_drop = yourls_get_option('expiry_table_drop');
 	if ( $expiry_table_drop !== 'false' ) {
 		global $ydb;
@@ -1320,7 +1346,7 @@ function expiry_deactivate() {
 		$sql = "DROP TABLE IF EXISTS $table";
 		$ydb->fetchAffected($sql);
 	}
-}
+});
 
 // DB Flushing
 function expiry_db_flush( $type ) {
@@ -1383,17 +1409,6 @@ function expiry_cleanup( $args ) {
 	$ydb->fetchAffected($sql, $binds);
 
 
-}
-
-function expiry_prune_inc_auth( $var ) {
-	// Check signature against all possible users
-	global $yourls_user_passwords;
-	foreach( $yourls_user_passwords as $valid_user => $valid_password )
-		if ( yourls_auth_signature( $valid_user ) === $var ) {
-			yourls_set_user( $valid_user );
-			return true;
-		}
-	return false;
 }
 
 /*
@@ -1498,37 +1513,4 @@ function expiry_display_expired($keyword, $result) {
 
 	echo $intercept;
 	die();
-}
-
-// Expiry-Change-Error-MSG
-yourls_add_action( 'plugins_loaded', 'expiry_change_error_msg' );
-function expiry_change_error_msg() {
-
-	if( !yourls_is_active_plugin('change-error-messages/plugin.php') ) {
-
-		yourls_add_filter( 'add_new_link', 'change_error_messages' );
-		// If the keyword exists, display the long URL in the error message
-		function change_error_messages( $return, $url, $keyword, $title  ) {
-			if ( isset( $return['code'] ) ) {
-				if ( $return['code'] === 'error:keyword' ){
-					$long_url = yourls_get_keyword_longurl( $keyword );
-					if ($long_url){
-						$return['message']	= 'The keyword "' . $keyword . '" already exists for: ' . $long_url;
-					} elseif ( yourls_keyword_is_reserved( $keyword ) ){
-									$return['message']	= "The keyword '" . $keyword . "' is reserved";
-					}
-				}
-				elseif ( $return['code'] === 'error:url' ){
-					if ($url_exists = yourls_long_url_exists( $url )){
-						$keyword = $url_exists->keyword;
-						$return['status']   = 'success';
-						$return['message']	= 'This URL already has a short link: ' . YOURLS_SITE .'/'. $keyword;
-						$return['title']    = $url_exists->title;
-						$return['shorturl'] = YOURLS_SITE .'/'. $keyword;
-					}
-				}
-			}
-			return yourls_apply_filter( 'after_custom_error_message', $return, $url, $keyword, $title );
-		}
-	}
 }
