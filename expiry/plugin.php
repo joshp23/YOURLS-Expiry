@@ -1325,7 +1325,7 @@ yourls_add_action( 'activated_expiry/plugin.php', function () {
 	// Create the expiry table
 	$table = YOURLS_DB_PREFIX . 'expiry';
 	$table_expiry  = "CREATE TABLE IF NOT EXISTS `".$table."` (";
-	$table_expiry .= "keyword binary(100) NOT NULL, ";
+	$table_expiry .= "keyword varchar(200) NOT NULL, ";
 	$table_expiry .= "type varchar(5) NOT NULL, ";
 	$table_expiry .= "click varchar(5), ";
 	$table_expiry .= "timestamp varchar(20), ";
