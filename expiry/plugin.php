@@ -955,7 +955,7 @@ function expiry_stats_response( $infos ) {
 yourls_add_filter( 'add_new_link', function ( $return, $url , $keyword, $title ) { 
 
 	// this method tolelrates no error in short url creation
-	if(isset ( $return['code'] ) ) {
+	if( isset ( $return['status'] ) &&  $return['status'] === 'fail' ) {
 		switch( $return['code'] ) {
 			case 'error:url':
 				$return['expiry'] = 'Error: use "action => expiry" to add expiration data to a pre-esxisting url. No expiry data set';
