@@ -331,10 +331,10 @@ echo <<<HTML
 					<ul>
 						<li>expiry = "clock"</li>
 						<ul> <li><code>age = NUMERIC_VALUE</code></li>
-							<li><code>ageMod = (min, hr, day)</code></li>
+							<li><code>ageMod = (min, hour, day)</code></li>
 						</ul>
 					</ul>
-					<p>If <code>count</code>, <code>age</code>, and <code>ageMod</code> values are not set, site default values will be used.</p> 
+					<p>If <code>count</code>, <code>age</code> and <code>ageMod</code> values are not set, site default values will be used.</p> 
 					<p><strong>Optional</strong>: set a post-expiration fallback URL:</p>
 					<ul>
 						<li><code>postx = URL</code></li>
