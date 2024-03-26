@@ -129,6 +129,7 @@ function expiry_do_page() {
 	
 	$expChk = ( $opt[3] == 'true' ? 'checked' : null );
 	$tblChk = ( $opt[2] == 'true' ? 'checked' : null );
+	$kpExp = ( $opt[10] == 'true' ? 'checked' : null );
 
 	// Create nonce
 	$nonce = yourls_create_nonce( 'expiry' );
@@ -256,6 +257,17 @@ echo <<<HTML
 							<input name="expiry_table_drop" type="checkbox" value="true" $tblChk > Drop it? 
 						</label>
 						<p>If selected, the expiry data will be flushed if the plugin gets disabled. Leave unchecked to preserve this data.</p>
+					</div>
+
+					<br>
+					<h3>Keep Expired Keywords</h3>
+
+					<div class="checkbox" style="padding-left: 10pt;border-left:1px solid blue;border-bottom:1px solid blue;">
+						<label>
+							<input name="expiry_keep_expired" type="hidden" value="false" />
+							<input name="expiry_keep_expired" type="checkbox" value="true" $kpExp > Keep expired shortlinks?
+						</label>
+						<p>If selected, the expired shortlink (actually the keyword) won't get deleted from the database upon calling after expiry. Still gets deleted with internal prune function.</p>
 					</div>
 
 					<input type="hidden" name="nonce" value="$nonce" />
@@ -698,7 +710,8 @@ function expiry_update_ops() {
 			yourls_update_option( 'expiry_expose', $_POST['expiry_expose'] );
 		if(isset( $_POST['expiry_table_drop'] )) 
 			yourls_update_option( 'expiry_table_drop', $_POST['expiry_table_drop'] );
-
+		if(isset( $_POST['expiry_keep_expired'] )) 
+			yourls_update_option( 'expiry_keep_expired', $_POST['expiry_keep_expired'] );
 	}
 }
 
@@ -856,7 +869,10 @@ function expiry_router($keyword, $result, $postx) {
 
 	elseif( $postx == null || $postx == '' || $postx == 'none' ) {
 	
-		yourls_delete_link_by_keyword( $keyword );
+		$keep_expired = yourls_get_option( 'expiry_keep_expired' );
+		if ( $keep_expired != true ) {
+			yourls_delete_link_by_keyword( $keyword );
+		}
 		
 		if ( !yourls_is_API() && !defined('EXPIRY_CLI')) {
 		
@@ -1431,6 +1447,7 @@ function expiry_config() {
 	$ageMod	   = yourls_get_option( 'expiry_default_age_mod' );
 	$click	   = yourls_get_option( 'expiry_default_click' );
 	$global	   = yourls_get_option( 'expiry_global_expiry' );
+	$keep	   = yourls_get_option( 'expiry_keep_expired' );
 	
 	// Set defaults if necessary
 	if( $intercept	== null ) $intercept 	= 'simple';
@@ -1443,6 +1460,7 @@ function expiry_config() {
 	if( $ageMod		== null ) $ageMod		= 'day';
 	if( $click		== null ) $click		= '50';
 	if( $global		== null ) $global		= 'none';
+	if( $keep		== null ) $keep			= 'false';
 
 	if( YOURLS_UNIQUE_URLS == true) $gpx_chk = 'false';
 
@@ -1456,7 +1474,8 @@ function expiry_config() {
 	$age,			// opt[6]
 	$ageMod,		// opt[7]
 	$click,			// opt[8]
-	$global			// opt[9]
+	$global,		// opt[9]
+	$keep			// opt[10]
 	);
 }
 
